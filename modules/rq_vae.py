@@ -76,6 +76,18 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
             layer._kmeans_init(x)
             emb = layer.get_item_embeddings(layer(x).ids)
             x = x - emb
+        
+    def get_semantic_id_single(self, x: Tensor) -> Tensor:
+        res = self.encode(x.unsqueeze(0))  # Add batch dim (1, ...)
+        
+        sem_ids = []
+        for layer in self.quantization_layers:
+            quantized = layer(res)
+            id = quantized.ids.squeeze(0)  # Remove batch dim
+            res = res - quantized.embeddings
+            sem_ids.append(id)
+
+        return torch.stack(sem_ids, dim=0)  # shape: (num_layers, semantic_id_dim)
 
     def get_semantic_ids(self, x: Tensor) -> RqVaeOutput:
         res = self.encode(x)

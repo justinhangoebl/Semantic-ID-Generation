@@ -4,3 +4,5 @@
 *.py[cod]
 
 dataset
+models
+plots

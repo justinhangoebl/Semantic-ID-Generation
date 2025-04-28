@@ -13,7 +13,7 @@ class Quantization(nn.Module):
         codebook_size: int,
         commitment_weight: float = 0.25,
         do_kmeans_init: bool = True,
-        sim_vq: bool = True,
+        sim_vq: bool = False,
     ) -> None:
         super().__init__()
         self.embed_dim = latent_dim
@@ -29,15 +29,21 @@ class Quantization(nn.Module):
         self._init_weights()
 
     def _init_weights(self):
-        nn.init.uniform_(self.embedding.weight, -1.0 / self.codebook_size, 1.0 / self.codebook_size)
-
+        for m in self.modules():
+            if isinstance(m, nn.Embedding):
+                nn.init.uniform_(m.weight)
+                
+    @property
+    def device(self) -> torch.device:
+        return next(self.parameters()).device
+    
     @torch.no_grad
     def _kmeans_init(self, x: Tensor):
-        x_np = x.detach().cpu().numpy()
-        kmeans = KMeans(n_clusters=self.codebook_size, n_init="auto", max_iter=50)
-        kmeans.fit(x_np)
-        centroids = torch.tensor(kmeans.cluster_centers_, dtype=torch.float, device=x.device)
-        self.embedding.weight.data.copy_(centroids)
+        x = x.view(-1, self.embed_dim).cpu().numpy()
+        kmeans = KMeans(n_clusters=self.codebook_size, n_init=10, max_iter=300)
+        kmeans.fit(x)
+        
+        self.embedding.weight.copy_(torch.from_numpy(kmeans.cluster_centers_).to(self.device))
         self.kmeans_initted = True
 
     def get_item_embeddings(self, item_ids) -> Tensor:
@@ -50,21 +56,29 @@ class Quantization(nn.Module):
         if self.do_kmeans_init and not self.kmeans_initted:
             self._kmeans_init(x)
 
-        codebook = self.get_codebook()
 
-        # Compute L2 distances
-        x_flat = x.view(-1, self.embed_dim)
-        dists = torch.cdist(x_flat, codebook, p=2)
-        ids = dists.argmin(dim=1)
-
-        quantized = codebook[ids]
-        quantized = x + (quantized - x).detach()  # STE
+        codebook = self.out_proj(self.embedding.weight)
+        
+        dist = (
+            (x**2).sum(axis=1, keepdim=True) +
+            (codebook.T**2).sum(axis=0, keepdim=True) -
+            2 * x @ codebook.T
+        )
+        
+        #probs = F.softmax(-dist, dim=1)
+        #ids = torch.multinomial(probs, num_samples=1).squeeze(1)
+        _, ids = (dist.detach()).min(axis=1)
+        emb = self.get_item_embeddings(ids)
+        emb_out = x + (emb - x).detach()
 
         # Compute commitment loss
-        loss = F.mse_loss(x, quantized.detach()) + self.commitment_weight * F.mse_loss(quantized, x.detach())
 
+        emb_loss = ((x.detach() - emb)**2).sum(axis=[-1])
+        query_loss = ((x - emb.detach())**2).sum(axis=[-1])
+        loss = emb_loss + self.commitment_weight * query_loss
+    
         return QuantizeOutput(
-            embeddings=quantized.view_as(x),
-            ids=ids.view(x.shape[:-1]),
+            embeddings=emb_out,
+            ids=ids,
             loss=loss,
         )
