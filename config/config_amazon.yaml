@@ -8,7 +8,7 @@ data:
 # Model configuration
 model:
   input_dimension: 768 # computed automatically later
-  hidden_dimension: [256, 512, 256] # also the first dimension here
+  hidden_dimensions: [768, 512, 256]
   latent_dimension: 256
   num_codebook_layers: 3
   codebook_clusters: 256
@@ -23,6 +23,6 @@ train:
 # Additional configuration
 general:
   use_wandb: True
-  wandb_project: "seamantic_id_amazon"
+  wandb_project: "semantic_id_amazon"
   wandb_entity: "justin-hangoebl-master-thesis"
   save_model: True

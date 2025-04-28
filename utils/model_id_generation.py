@@ -4,7 +4,7 @@ def generate_model_id(config: Dict) -> str:
     dataset = config.data.dataset
     batch_size = config.data.batch_size
     normalize_data = config.data.normalize_data
-    hidden_dimension = config.model.hidden_dimension
+    hidden_dimension = config.model.hidden_dimensions
     latent_dimension = config.model.latent_dimension
     num_codebook_layers = config.model.num_codebook_layers
     codebook_clusters = config.model.codebook_clusters
