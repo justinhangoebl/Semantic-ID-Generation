@@ -4,14 +4,17 @@ from dotenv import load_dotenv
 from utils.model_id_generation import generate_model_id
 
 def wandb_init(config):
-    model_id = generate_model_id(config)
+    wb_conf = config.model
+    wb_conf.update(config.data)
+    wb_conf.update(config.train)
+    wb_conf.update({
+        "model_id": generate_model_id(config),
+    })
     wandb.init(
         project=config.general.wandb_project,
         entity=config.general.wandb_entity,
-        config=config,
-        id=model_id,
-        resume="allow",
-        name=model_id,
+        config=wb_conf,
+        resume="never",
         dir=os.path.join("outputs", "wandb", "runs"),
     )
 
