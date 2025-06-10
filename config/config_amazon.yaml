@@ -8,15 +8,15 @@ data:
 # Model configuration
 model:
   input_dimension: 768 # computed automatically later
-  hidden_dimensions: [768, 512, 256]
-  latent_dimension: 256
+  hidden_dimensions: [768, 512, 256, 128]
+  latent_dimension: 128
   num_codebook_layers: 3
   codebook_clusters: 256
   commitment_weight: 0.25
 
 # Training configuration
 train:
-  learning_rate: 1e-3
+  learning_rate: 5e-4
   weight_decay: 1e-4
   num_epochs: 256
 
