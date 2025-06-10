@@ -1,7 +1,7 @@
 from typing import Dict
 
 def generate_model_id(config: Dict) -> str:
-    dataset = config.data.dataset
+    dataset = str(config.data.dataset) + ("-" + str(config.data.category)) if 'category' in config.data.category else str(config.data.dataset)
     batch_size = config.data.batch_size
     normalize_data = config.data.normalize_data
     hidden_dimension = config.model.hidden_dimensions
@@ -15,7 +15,7 @@ def generate_model_id(config: Dict) -> str:
     
     # Create the model ID string
     model_id = (
-        f"{dataset}-{config.data.category}-bs{batch_size}-norm{str(normalize_data)[0]}-"
+        f"{dataset}-bs{batch_size}-norm{str(normalize_data)[0]}-"
         f"hd{'_'.join(map(str, hidden_dimension))}-ld{latent_dimension}-"
         f"cb{num_codebook_layers}x{codebook_clusters}-cw{commitment_weight}-"
         f"lr{learning_rate}-wd{weight_decay}-ep{num_epochs}"

@@ -1,6 +1,7 @@
 import torch
 import os
 from data.amazon_data import AmazonReviews
+from torchvision import datasets, transforms
 from sklearn.preprocessing import normalize
 
 def load_amazon(category='beauty', normalize_data=True, train=True):
@@ -17,3 +18,39 @@ def load_amazon(category='beauty', normalize_data=True, train=True):
     data_clean = data['item']['x'][data['item']['is_train']== train]
 
     return data_clean
+
+def load_mnist(normalize_data=True, train=True):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,)) if normalize_data else transforms.Lambda(lambda x: x),
+        transforms.Lambda(lambda x: x.view(-1))
+    ])
+
+    dataset = datasets.MNIST(root='./dataset', train=train, download=True, transform=transform)
+    
+    # Apply transforms and extract data
+    data = torch.stack([dataset[i][0] for i in range(len(dataset))])
+    
+    if not train:
+        labels = torch.tensor([dataset[i][1] for i in range(len(dataset))])
+        return data, labels
+
+    return data
+
+def load_movielens(normalize_data=True, train=True):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,)) if normalize_data else transforms.Lambda(lambda x: x),
+        transforms.Lambda(lambda x: x.view(-1))
+    ])
+
+    dataset = datasets.MNIST(root='./dataset', train=train, download=True, transform=transform)
+    
+    # Apply transforms and extract data
+    data = torch.stack([dataset[i][0] for i in range(len(dataset))])
+    
+    if not train:
+        labels = torch.tensor([dataset[i][1] for i in range(len(dataset))])
+        return data, labels
+
+    return data

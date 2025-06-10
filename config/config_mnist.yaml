@@ -1,0 +1,28 @@
+# Data loader configuration
+data:
+  dataset: "mnist"
+  batch_size: 1024
+  normalize_data: False
+  category: "digits"
+
+# Model configuration
+model:
+  input_dimension: 784 # computed automatically later
+  hidden_dimensions: [784, 512]
+  latent_dimension: 256
+  num_codebook_layers: 2
+  codebook_clusters: 50
+  commitment_weight: 0.75
+
+# Training configuration
+train:
+  learning_rate: 1e-3
+  weight_decay: 1e-4
+  num_epochs: 5
+
+# Additional configuration
+general:
+  use_wandb: True
+  wandb_project: "semantic_id_mnist"
+  wandb_entity: "justin-hangoebl-master-thesis"
+  save_model: True
