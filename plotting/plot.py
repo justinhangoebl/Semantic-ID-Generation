@@ -32,8 +32,5 @@ def plot_results_panels(losses: List[Dict[str, float]], plot_configs: List[Tuple
         ax.set_title(title)
         ax.legend([key, best_epoch_text])
         ax.grid(True)
-
-    plt.tight_layout()
-    plt.show()
     
     return fig

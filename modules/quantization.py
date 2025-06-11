@@ -65,13 +65,9 @@ class Quantization(nn.Module):
             2 * x @ codebook.T
         )
         
-        #probs = F.softmax(-dist, dim=1)
-        #ids = torch.multinomial(probs, num_samples=1).squeeze(1)
         _, ids = (dist.detach()).min(axis=1)
         emb = self.get_item_embeddings(ids)
         emb_out = x + (emb - x).detach()
-
-        # Compute commitment loss
 
         emb_loss = ((x.detach() - emb)**2).sum(axis=[-1])
         query_loss = ((x - emb.detach())**2).sum(axis=[-1])
