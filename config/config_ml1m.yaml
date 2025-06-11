@@ -1,23 +1,24 @@
 # Data loader configuration
 data:
-  dataset: "ml-1m"
+  dataset: "ml"
   batch_size: 1024
   normalize_data: False
+  category: "1m"
 
 # Model configuration
 model:
-  input_dimension: 784
-  hidden_dimensions: [784, 512]
-  latent_dimension: 256
-  num_codebook_layers: 1
-  codebook_clusters: 50
-  commitment_weight: 0.75
+  input_dimension: 3706
+  hidden_dimensions: [3706, 2048, 1024, 512]
+  latent_dimension: 512
+  num_codebook_layers: 3
+  codebook_clusters: 256
+  commitment_weight: 0.25
 
 # Training configuration
 train:
   learning_rate: 1e-3
   weight_decay: 1e-4
-  num_epochs: 5
+  num_epochs: 256
 
 # Additional configuration
 general:
