@@ -15,7 +15,7 @@ def generate_model_id(config: Dict) -> str:
     
     # Create the model ID string
     model_id = (
-        f"{dataset}-bs{batch_size}-norm{str(normalize_data)[0]}-"
+        f"{dataset}-bs{batch_size}-{config.general.embedding_dimension}-norm{str(normalize_data)[0]}-"
         f"hd{'_'.join(map(str, hidden_dimension))}-ld{latent_dimension}-"
         f"cb{num_codebook_layers}x{codebook_clusters}-cw{commitment_weight}-"
         f"lr{learning_rate}-wd{weight_decay}-ep{num_epochs}"

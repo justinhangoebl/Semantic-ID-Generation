@@ -38,6 +38,9 @@ def train(model, data, optimizer, num_epochs, device, config):
                         "Reconstruction Loss": total_reconstruction_loss / len(train_loader),
                         "RQ-VAE Loss": total_commit_loss / len(train_loader),
                         "Prob Unique IDs": p_unique / len(train_loader)}
+        if p_unique/ len(train_loader) >= 1:
+            break
+            
         
         if config.general.use_wandb:
             wandb.log(epoch_stats, step=epoch)
