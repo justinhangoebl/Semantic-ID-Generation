@@ -21,7 +21,7 @@ def load_amazon(category='beauty', normalize_data=True, train=True):
 
     return data_clean
 
-def load_movie_lens(category='100k', dimension="user", train=True, raw=True):
+def load_movie_lens(category='1M', dimension="user", train=True, raw=True):
     # Build the file path
     sub_folder = "raw" if raw else "processed"
     path = fr"dataset/ml-{category}/{sub_folder}/ml-{category}.{dimension}"
@@ -34,6 +34,7 @@ def load_movie_lens(category='100k', dimension="user", train=True, raw=True):
 
     # Load the dataset
     data = pd.read_csv(path, sep='\t', index_col=0)
+    print(data.columns)
 
     # Load pretrained Sentence-T5 model
     model = SentenceTransformer('sentence-transformers/sentence-t5-base')
@@ -43,10 +44,13 @@ def load_movie_lens(category='100k', dimension="user", train=True, raw=True):
         texts = data.apply(lambda row: f"User is a {row['age:token']}-year-old\
                            {"male" if row['gender:token']=="M" else "female"} \
                            {row['occupation:token']}\
-                           living in zip code {row['zip_code:token']}.", axis=1).tolist()
+                           living in zip code {row['zip_code:token']}.", axis=1).tolist()		
     elif dimension == "item":
-        raise NotImplementedError("Item-based text generation not yet implemented.")
-    elif dimension == "relation" or dimension == "entity":
+        texts = data.apply(lambda row: f"The movie {row['movie_title:token_seq']} was realeased in {row['release_year:token']} \
+                           has mostly regarded these genres: {row['genre:token_seq']}.", axis=1).tolist()
+    elif dimension == "relation":
+        texts = data.apply(lambda row: f"{row['relation_nl:token']}", axis=1).tolist()
+    elif dimension == "entity":
         raise NotImplementedError(f"{dimension}-based embeddings not supported yet.")
     else:
         raise ValueError("Invalid dimension. Choose from 'user', 'item', 'relation', or 'entity'.")

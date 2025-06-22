@@ -10,3 +10,5 @@ plots
 outputs
 
 ok_models/
+
+wandb/

@@ -1,0 +1,1179 @@
+{
+  "search_type": "random",
+  "best_trial_id": 16,
+  "num_trials": 20,
+  "best_performance": 333.89037322998047,
+  "best_hyperparameters": {
+    "learning_rate": 0.0005,
+    "weight_decay": 1e-5,
+    "batch_size": 512,
+    "hidden_dimensions": [512, 256, 128],
+    "latent_dimension": 256,
+    "codebook_clusters": 512,
+    "num_codebook_layers": 3,
+    "commitment_weight": 0.3
+  },
+  "all_results": [
+    {
+      "trial_id": 0,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 512,
+        "codebook_clusters": 128,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.25
+      },
+      "performance": {
+        "final_loss": 1305.7037658691406,
+        "final_reconstruction_loss": 1305.6724344889324,
+        "final_rqvae_loss": 0.031338450809319816,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 1071.8183485542247,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 1305.7056070963542,
+          "Reconstruction Loss": 1305.6724344889324,
+          "RQ-VAE Loss": 0.03314079654713472,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 1305.7051188151042,
+          "Reconstruction Loss": 1305.6724344889324,
+          "RQ-VAE Loss": 0.03267544507980347,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 1305.7046305338542,
+          "Reconstruction Loss": 1305.6724344889324,
+          "RQ-VAE Loss": 0.03221970424056053,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 1305.7042134602864,
+          "Reconstruction Loss": 1305.6724344889324,
+          "RQ-VAE Loss": 0.03177369168649117,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 1305.7037658691406,
+          "Reconstruction Loss": 1305.6724344889324,
+          "RQ-VAE Loss": 0.031338450809319816,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 1,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [1024, 512, 256],
+        "latent_dimension": 256,
+        "codebook_clusters": 128,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.3
+      },
+      "performance": {
+        "final_loss": 441.6302897135417,
+        "final_reconstruction_loss": 441.6088587443034,
+        "final_rqvae_loss": 0.021424692822620273,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 441.67068760691126,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 441.6308873494466,
+          "Reconstruction Loss": 441.6088587443034,
+          "RQ-VAE Loss": 0.022027234236399334,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 441.6458206176758,
+          "Reconstruction Loss": 441.6088587443034,
+          "RQ-VAE Loss": 0.0369578959265103,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 441.8292541503906,
+          "Reconstruction Loss": 441.6088587443034,
+          "RQ-VAE Loss": 0.22039133807023367,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 441.8061243693034,
+          "Reconstruction Loss": 441.6088587443034,
+          "RQ-VAE Loss": 0.1972630719343821,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 441.6302897135417,
+          "Reconstruction Loss": 441.6088587443034,
+          "RQ-VAE Loss": 0.021424692822620273,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 2,
+      "hyperparameters": {
+        "learning_rate": 0.001,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 512, 256],
+        "latent_dimension": 512,
+        "codebook_clusters": 128,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.3
+      },
+      "performance": {
+        "final_loss": 443.01263427734375,
+        "final_reconstruction_loss": 443.00926971435547,
+        "final_rqvae_loss": 0.0033581544945870214,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 442.56662802602733,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 443.01843007405597,
+          "Reconstruction Loss": 443.00926971435547,
+          "RQ-VAE Loss": 0.009153056559929004,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 443.0149892171224,
+          "Reconstruction Loss": 443.00926971435547,
+          "RQ-VAE Loss": 0.005709684196820793,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 443.01436614990234,
+          "Reconstruction Loss": 443.00926971435547,
+          "RQ-VAE Loss": 0.005100363914001112,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 443.01366933186847,
+          "Reconstruction Loss": 443.00926971435547,
+          "RQ-VAE Loss": 0.0043945882813810995,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 443.01263427734375,
+          "Reconstruction Loss": 443.00926971435547,
+          "RQ-VAE Loss": 0.0033581544945870214,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 3,
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 128,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 339.1316782633464,
+        "final_reconstruction_loss": 332.6851857503255,
+        "final_rqvae_loss": 6.44649350643158,
+        "final_prob_unique_ids": 0.9685776680707932,
+        "avg_loss": 339.842219608282,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 339.25351969401044,
+          "Reconstruction Loss": 332.7578989664714,
+          "RQ-VAE Loss": 6.495617508888245,
+          "Prob Unique IDs": 0.9686989386876425
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 339.2252146402995,
+          "Reconstruction Loss": 332.74156443277997,
+          "RQ-VAE Loss": 6.483653903007507,
+          "Prob Unique IDs": 0.9686574538548788
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 339.1503651936849,
+          "Reconstruction Loss": 332.69119517008465,
+          "RQ-VAE Loss": 6.459167281786601,
+          "Prob Unique IDs": 0.9680893868207932
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 339.1302261352539,
+          "Reconstruction Loss": 332.67589060465497,
+          "RQ-VAE Loss": 6.4543319543202715,
+          "Prob Unique IDs": 0.9689446787039439
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 339.1316782633464,
+          "Reconstruction Loss": 332.6851857503255,
+          "RQ-VAE Loss": 6.44649350643158,
+          "Prob Unique IDs": 0.9685776680707932
+        }
+      ]
+    },
+    {
+      "trial_id": 4,
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 512, 256],
+        "latent_dimension": 128,
+        "codebook_clusters": 512,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.3
+      },
+      "performance": {
+        "final_loss": 335.9270884195964,
+        "final_reconstruction_loss": 334.18213144938153,
+        "final_rqvae_loss": 1.74495334426562,
+        "final_prob_unique_ids": 0.9714658657709757,
+        "avg_loss": 336.0013006871042,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 336.0811182657878,
+          "Reconstruction Loss": 334.34810129801434,
+          "RQ-VAE Loss": 1.7330158948898315,
+          "Prob Unique IDs": 0.9715488453706106
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 335.98974863688153,
+          "Reconstruction Loss": 334.25814565022785,
+          "RQ-VAE Loss": 1.7316027681032817,
+          "Prob Unique IDs": 0.974149818221728
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 335.98517354329425,
+          "Reconstruction Loss": 334.2460428873698,
+          "RQ-VAE Loss": 1.7391345004240673,
+          "Prob Unique IDs": 0.9700840016206106
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 335.90403238932294,
+          "Reconstruction Loss": 334.1695734659831,
+          "RQ-VAE Loss": 1.7344599962234497,
+          "Prob Unique IDs": 0.9713828911383947
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 335.9270884195964,
+          "Reconstruction Loss": 334.18213144938153,
+          "RQ-VAE Loss": 1.74495334426562,
+          "Prob Unique IDs": 0.9714658657709757
+        }
+      ]
+    },
+    {
+      "trial_id": 5,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [512, 256, 128],
+        "latent_dimension": 128,
+        "codebook_clusters": 128,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.25
+      },
+      "performance": {
+        "final_loss": 436.9072443644206,
+        "final_reconstruction_loss": 436.8414001464844,
+        "final_rqvae_loss": 0.06584014580585063,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 436.84778063905003,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 436.84192148844403,
+          "Reconstruction Loss": 436.8414001464844,
+          "RQ-VAE Loss": 0.0005181410184983785,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 436.8419189453125,
+          "Reconstruction Loss": 436.8414001464844,
+          "RQ-VAE Loss": 0.0005145759326599849,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 436.84202575683594,
+          "Reconstruction Loss": 436.8414001464844,
+          "RQ-VAE Loss": 0.0006174540952391302,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 436.8526255289714,
+          "Reconstruction Loss": 436.8414001464844,
+          "RQ-VAE Loss": 0.011226034655313319,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 436.9072443644206,
+          "Reconstruction Loss": 436.8414001464844,
+          "RQ-VAE Loss": 0.06584014580585063,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 6,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 512, 256],
+        "latent_dimension": 256,
+        "codebook_clusters": 128,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 441.73938242594403,
+        "final_reconstruction_loss": 439.9351857503255,
+        "final_rqvae_loss": 1.8041951358318329,
+        "final_prob_unique_ids": 0.004151986329816282,
+        "avg_loss": 463.1254258747974,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 506.1338857014974,
+          "Reconstruction Loss": 440.0034917195638,
+          "RQ-VAE Loss": 66.13039906819661,
+          "Prob Unique IDs": 0.0038679534724603095
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 468.2416483561198,
+          "Reconstruction Loss": 439.9351857503255,
+          "RQ-VAE Loss": 28.30646006266276,
+          "Prob Unique IDs": 0.006430632163149615
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 448.60548909505206,
+          "Reconstruction Loss": 439.9351857503255,
+          "RQ-VAE Loss": 8.670297046502432,
+          "Prob Unique IDs": 0.00797845182629923
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 443.07366434733075,
+          "Reconstruction Loss": 439.9351857503255,
+          "RQ-VAE Loss": 3.1384774645169577,
+          "Prob Unique IDs": 0.004314746746482949
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 441.73938242594403,
+          "Reconstruction Loss": 439.9351857503255,
+          "RQ-VAE Loss": 1.8041951358318329,
+          "Prob Unique IDs": 0.004151986329816282
+        }
+      ]
+    },
+    {
+      "trial_id": 7,
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 512, 256],
+        "latent_dimension": 256,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 336.90502675374347,
+        "final_reconstruction_loss": 332.4380696614583,
+        "final_rqvae_loss": 4.466950416564941,
+        "final_prob_unique_ids": 0.979485809803009,
+        "avg_loss": 337.42601384680256,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 337.0055414835612,
+          "Reconstruction Loss": 332.5208918253581,
+          "RQ-VAE Loss": 4.484646598498027,
+          "Prob Unique IDs": 0.9802964180707932
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 336.96507771809894,
+          "Reconstruction Loss": 332.50050354003906,
+          "RQ-VAE Loss": 4.464569330215454,
+          "Prob Unique IDs": 0.9804208825031916
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 336.9359130859375,
+          "Reconstruction Loss": 332.4692026774089,
+          "RQ-VAE Loss": 4.466712713241577,
+          "Prob Unique IDs": 0.9800538718700409
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 336.91369883219403,
+          "Reconstruction Loss": 332.4585494995117,
+          "RQ-VAE Loss": 4.455146431922913,
+          "Prob Unique IDs": 0.979281559586525
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 336.90502675374347,
+          "Reconstruction Loss": 332.4380696614583,
+          "RQ-VAE Loss": 4.466950416564941,
+          "Prob Unique IDs": 0.979485809803009
+        }
+      ]
+    },
+    {
+      "trial_id": 8,
+      "hyperparameters": {
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 512, 256],
+        "latent_dimension": 128,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.3
+      },
+      "performance": {
+        "final_loss": 333.89037322998047,
+        "final_reconstruction_loss": 330.7184880574544,
+        "final_rqvae_loss": 3.1718825697898865,
+        "final_prob_unique_ids": 0.9774911950031916,
+        "avg_loss": 333.8642503576341,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 333.87176513671875,
+          "Reconstruction Loss": 330.7044219970703,
+          "RQ-VAE Loss": 3.167345146338145,
+          "Prob Unique IDs": 0.9758603970209757
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 333.85818735758465,
+          "Reconstruction Loss": 330.6925786336263,
+          "RQ-VAE Loss": 3.165605386098226,
+          "Prob Unique IDs": 0.9767986635367075
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 333.8893102010091,
+          "Reconstruction Loss": 330.71132405598956,
+          "RQ-VAE Loss": 3.1779917081197104,
+          "Prob Unique IDs": 0.9751295745372772
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 333.8524169921875,
+          "Reconstruction Loss": 330.70045471191406,
+          "RQ-VAE Loss": 3.1519649426142373,
+          "Prob Unique IDs": 0.9751295745372772
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 333.89037322998047,
+          "Reconstruction Loss": 330.7184880574544,
+          "RQ-VAE Loss": 3.1718825697898865,
+          "Prob Unique IDs": 0.9774911950031916
+        }
+      ]
+    },
+    {
+      "trial_id": 9,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [512, 256, 128],
+        "latent_dimension": 256,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.3
+      },
+      "performance": {
+        "final_loss": 440.92699178059894,
+        "final_reconstruction_loss": 440.9267349243164,
+        "final_rqvae_loss": 0.00025731952094550553,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 440.93419141083757,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 440.9269841512044,
+          "Reconstruction Loss": 440.9267349243164,
+          "RQ-VAE Loss": 0.00025063665937826346,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 440.9269841512044,
+          "Reconstruction Loss": 440.9267349243164,
+          "RQ-VAE Loss": 0.00025879894383251667,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 440.92699940999347,
+          "Reconstruction Loss": 440.9267349243164,
+          "RQ-VAE Loss": 0.0002671006683764669,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 440.927001953125,
+          "Reconstruction Loss": 440.9267349243164,
+          "RQ-VAE Loss": 0.0002683634071824296,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 440.92699178059894,
+          "Reconstruction Loss": 440.9267349243164,
+          "RQ-VAE Loss": 0.00025731952094550553,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 10,
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 512,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 336.0689977010091,
+        "final_reconstruction_loss": 331.2262496948242,
+        "final_rqvae_loss": 4.842753529548645,
+        "final_prob_unique_ids": 0.9810719241698583,
+        "avg_loss": 336.0070683847066,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 336.1023635864258,
+          "Reconstruction Loss": 331.28055572509766,
+          "RQ-VAE Loss": 4.821805953979492,
+          "Prob Unique IDs": 0.9808261891206106
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 336.0667266845703,
+          "Reconstruction Loss": 331.2472152709961,
+          "RQ-VAE Loss": 4.819515705108643,
+          "Prob Unique IDs": 0.9802166322867075
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 336.06927490234375,
+          "Reconstruction Loss": 331.2544860839844,
+          "RQ-VAE Loss": 4.8147847255071,
+          "Prob Unique IDs": 0.9803379078706106
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 336.0588862101237,
+          "Reconstruction Loss": 331.23885345458984,
+          "RQ-VAE Loss": 4.820027510325114,
+          "Prob Unique IDs": 0.9805006682872772
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 336.0689977010091,
+          "Reconstruction Loss": 331.2262496948242,
+          "RQ-VAE Loss": 4.842753529548645,
+          "Prob Unique IDs": 0.9810719241698583
+        }
+      ]
+    },
+    {
+      "trial_id": 11,
+      "hyperparameters": {
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 512, 256],
+        "latent_dimension": 256,
+        "codebook_clusters": 512,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.25
+      },
+      "performance": {
+        "final_loss": 341.57830301920575,
+        "final_reconstruction_loss": 331.60511525472003,
+        "final_rqvae_loss": 9.97318704922994,
+        "final_prob_unique_ids": 0.9601524223883947,
+        "avg_loss": 341.62102109622333,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 341.69919840494794,
+          "Reconstruction Loss": 331.52079010009766,
+          "RQ-VAE Loss": 10.178403536478678,
+          "Prob Unique IDs": 0.9632448703050613
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 341.302007039388,
+          "Reconstruction Loss": 331.5593516031901,
+          "RQ-VAE Loss": 9.742658615112305,
+          "Prob Unique IDs": 0.9613332351048788
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 342.0464604695638,
+          "Reconstruction Loss": 331.58091990152997,
+          "RQ-VAE Loss": 10.465539137522379,
+          "Prob Unique IDs": 0.9627151042222977
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 341.9149119059245,
+          "Reconstruction Loss": 331.61988576253253,
+          "RQ-VAE Loss": 10.295020341873169,
+          "Prob Unique IDs": 0.962064062555631
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 341.57830301920575,
+          "Reconstruction Loss": 331.60511525472003,
+          "RQ-VAE Loss": 9.97318704922994,
+          "Prob Unique IDs": 0.9601524223883947
+        }
+      ]
+    },
+    {
+      "trial_id": 12,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 128,
+        "codebook_clusters": 128,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 437.0087153116862,
+        "final_reconstruction_loss": 437.0080083211263,
+        "final_rqvae_loss": 0.0007024456232708568,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 437.0104620690439,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 437.00867970784503,
+          "Reconstruction Loss": 437.0080083211263,
+          "RQ-VAE Loss": 0.0006722866261649566,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 437.0147705078125,
+          "Reconstruction Loss": 437.0080083211263,
+          "RQ-VAE Loss": 0.00676350318826735,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 437.01458740234375,
+          "Reconstruction Loss": 437.0080083211263,
+          "RQ-VAE Loss": 0.006577174683722357,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 437.0092086791992,
+          "Reconstruction Loss": 437.0080083211263,
+          "RQ-VAE Loss": 0.0012008958534958463,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 437.0087153116862,
+          "Reconstruction Loss": 437.0080083211263,
+          "RQ-VAE Loss": 0.0007024456232708568,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 13,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [1024, 512, 256],
+        "latent_dimension": 256,
+        "codebook_clusters": 512,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 437.98221079508465,
+        "final_reconstruction_loss": 437.9733200073242,
+        "final_rqvae_loss": 0.008892791093482325,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 437.9808866962109,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 437.9756495157878,
+          "Reconstruction Loss": 437.9733200073242,
+          "RQ-VAE Loss": 0.0023305845534196123,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 437.9740753173828,
+          "Reconstruction Loss": 437.9733200073242,
+          "RQ-VAE Loss": 0.0007632707226245353,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 437.9735641479492,
+          "Reconstruction Loss": 437.9733200073242,
+          "RQ-VAE Loss": 0.0002399343623740909,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 437.9740168253581,
+          "Reconstruction Loss": 437.9733200073242,
+          "RQ-VAE Loss": 0.0006993381369587345,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 437.98221079508465,
+          "Reconstruction Loss": 437.9733200073242,
+          "RQ-VAE Loss": 0.008892791093482325,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 14,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 256,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.25
+      },
+      "performance": {
+        "final_loss": 1484.5522155761719,
+        "final_reconstruction_loss": 1484.5494588216145,
+        "final_rqvae_loss": 0.0027635221874030926,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 1230.8886070500791,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 1484.5523173014324,
+          "Reconstruction Loss": 1484.5494588216145,
+          "RQ-VAE Loss": 0.0028492450752916434,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 1484.5522969563801,
+          "Reconstruction Loss": 1484.5494588216145,
+          "RQ-VAE Loss": 0.0028270751936361194,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 1484.5522867838542,
+          "Reconstruction Loss": 1484.5494588216145,
+          "RQ-VAE Loss": 0.0028065788986471794,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 1484.5522359212239,
+          "Reconstruction Loss": 1484.5494588216145,
+          "RQ-VAE Loss": 0.002786104140492777,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 1484.5522155761719,
+          "Reconstruction Loss": 1484.5494588216145,
+          "RQ-VAE Loss": 0.0027635221874030926,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 15,
+      "hyperparameters": {
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [1024, 512, 256],
+        "latent_dimension": 512,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.3
+      },
+      "performance": {
+        "final_loss": 478.9710947672526,
+        "final_reconstruction_loss": 478.96315511067706,
+        "final_rqvae_loss": 0.007942225124376515,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 478.96471038519167,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 478.9644546508789,
+          "Reconstruction Loss": 478.96315511067706,
+          "RQ-VAE Loss": 0.0012895415420643985,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 478.9657160441081,
+          "Reconstruction Loss": 478.96315511067706,
+          "RQ-VAE Loss": 0.002568156002477432,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 478.9728317260742,
+          "Reconstruction Loss": 478.96315511067706,
+          "RQ-VAE Loss": 0.009674662413696447,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 478.97186279296875,
+          "Reconstruction Loss": 478.96315511067706,
+          "RQ-VAE Loss": 0.00871122700724906,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 478.9710947672526,
+          "Reconstruction Loss": 478.96315511067706,
+          "RQ-VAE Loss": 0.007942225124376515,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 16,
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [512, 256, 128],
+        "latent_dimension": 256,
+        "codebook_clusters": 512,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.3
+      },
+      "performance": {
+        "final_loss": 333.98314412434894,
+        "final_reconstruction_loss": 332.6799672444661,
+        "final_rqvae_loss": 1.3031783600648243,
+        "final_prob_unique_ids": 0.9823740075031916,
+        "avg_loss": 334.4973829680798,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 334.0005238850911,
+          "Reconstruction Loss": 332.7001775105794,
+          "RQ-VAE Loss": 1.3003453314304352,
+          "Prob Unique IDs": 0.9828622887531916
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 333.987543741862,
+          "Reconstruction Loss": 332.6921793619792,
+          "RQ-VAE Loss": 1.2953701814015706,
+          "Prob Unique IDs": 0.9828207989533743
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 333.98524475097656,
+          "Reconstruction Loss": 332.6884765625,
+          "RQ-VAE Loss": 1.296765039364497,
+          "Prob Unique IDs": 0.982211247086525
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 333.97415415445965,
+          "Reconstruction Loss": 332.6760482788086,
+          "RQ-VAE Loss": 1.298103282848994,
+          "Prob Unique IDs": 0.982699528336525
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 333.98314412434894,
+          "Reconstruction Loss": 332.6799672444661,
+          "RQ-VAE Loss": 1.3031783600648243,
+          "Prob Unique IDs": 0.9823740075031916
+        }
+      ]
+    },
+    {
+      "trial_id": 17,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 128,
+        "codebook_clusters": 512,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 435.2177378336589,
+        "final_reconstruction_loss": 435.21538798014325,
+        "final_rqvae_loss": 0.0023559394903713837,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 435.2181783439287,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 435.2206039428711,
+          "Reconstruction Loss": 435.21538798014325,
+          "RQ-VAE Loss": 0.005216850127908401,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 435.2181854248047,
+          "Reconstruction Loss": 435.21538798014325,
+          "RQ-VAE Loss": 0.0027958373927200833,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 435.2230402628581,
+          "Reconstruction Loss": 435.21538798014325,
+          "RQ-VAE Loss": 0.007642565886878098,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 435.22457631429035,
+          "Reconstruction Loss": 435.21538798014325,
+          "RQ-VAE Loss": 0.009181075574209293,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 435.2177378336589,
+          "Reconstruction Loss": 435.21538798014325,
+          "RQ-VAE Loss": 0.0023559394903713837,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 18,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 0.0001,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 128,
+        "codebook_clusters": 128,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 435.14566294352215,
+        "final_reconstruction_loss": 435.13478597005206,
+        "final_rqvae_loss": 0.010874381812755018,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 435.13744763143706,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 435.13484446207684,
+          "Reconstruction Loss": 435.13478597005206,
+          "RQ-VAE Loss": 5.4352339247998316e-5,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 435.13484446207684,
+          "Reconstruction Loss": 435.13478597005206,
+          "RQ-VAE Loss": 5.409309596871026e-5,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 435.1349563598633,
+          "Reconstruction Loss": 435.13478597005206,
+          "RQ-VAE Loss": 0.00017549522575185014,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 435.14183553059894,
+          "Reconstruction Loss": 435.13478597005206,
+          "RQ-VAE Loss": 0.007048509549349546,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 435.14566294352215,
+          "Reconstruction Loss": 435.13478597005206,
+          "RQ-VAE Loss": 0.010874381812755018,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    },
+    {
+      "trial_id": 19,
+      "hyperparameters": {
+        "learning_rate": 0.002,
+        "weight_decay": 1e-5,
+        "batch_size": 512,
+        "hidden_dimensions": [768, 384, 192],
+        "latent_dimension": 256,
+        "codebook_clusters": 256,
+        "num_codebook_layers": 3,
+        "commitment_weight": 0.1
+      },
+      "performance": {
+        "final_loss": 438.78081766764325,
+        "final_reconstruction_loss": 438.7534408569336,
+        "final_rqvae_loss": 0.02737885434180498,
+        "final_prob_unique_ids": 0.0019946129565748074,
+        "avg_loss": 438.3694488176333,
+        "convergence_epoch": 1024
+      },
+      "train_results": [
+        {
+          "Epoch": 1019,
+          "Loss": 438.3674799601237,
+          "Reconstruction Loss": 438.36069742838544,
+          "RQ-VAE Loss": 0.006783115561120212,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1020,
+          "Loss": 438.3644307454427,
+          "Reconstruction Loss": 438.36069742838544,
+          "RQ-VAE Loss": 0.0037248168470493206,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1021,
+          "Loss": 438.3618927001953,
+          "Reconstruction Loss": 438.36069742838544,
+          "RQ-VAE Loss": 0.0012005319925568376,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1022,
+          "Loss": 438.36849721272785,
+          "Reconstruction Loss": 438.36069742838544,
+          "RQ-VAE Loss": 0.007800102903274819,
+          "Prob Unique IDs": 0.0019946129565748074
+        },
+        {
+          "Epoch": 1023,
+          "Loss": 438.78081766764325,
+          "Reconstruction Loss": 438.7534408569336,
+          "RQ-VAE Loss": 0.02737885434180498,
+          "Prob Unique IDs": 0.0019946129565748074
+        }
+      ]
+    }
+  ],
+  "timestamp": "2025-06-22T20:16:14.135112"
+}
