@@ -3,7 +3,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 import wandb
 
-def train(model, data, optimizer, num_epochs, device, config):
+def train(model, data, optimizer, scheduler, num_epochs, device, config):
     model.train()
     
     epoch_progress = tqdm(range(num_epochs), total=num_epochs, desc="Training Loop")
@@ -27,6 +27,7 @@ def train(model, data, optimizer, num_epochs, device, config):
             result = model(batch)
             result.loss.backward()
             optimizer.step()
+            #scheduler.step()
             
             total_loss += result.loss.item()
             total_reconstruction_loss += result.reconstruction_loss.item()
@@ -38,6 +39,9 @@ def train(model, data, optimizer, num_epochs, device, config):
                         "Reconstruction Loss": total_reconstruction_loss / len(train_loader),
                         "RQ-VAE Loss": total_commit_loss / len(train_loader),
                         "Prob Unique IDs": p_unique / len(train_loader)}
+        if p_unique/ len(train_loader) >= 1:
+            break
+            
         
         if config.general.use_wandb:
             wandb.log(epoch_stats, step=epoch)
