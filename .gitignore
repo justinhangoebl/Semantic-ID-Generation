@@ -14,3 +14,7 @@ ok_models/
 wandb/
 
 hyperopt_results/
+
+debug*
+
+*test*
