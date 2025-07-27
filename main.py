@@ -13,6 +13,7 @@ from modules.rq_vae import RQ_VAE
 from modules.rk_means import RKMeans
 from modules.rvq import RVQ
 from utils.model_id_generation import generate_model_id
+from schemas.quantization import QuantizeForwardMode
 import argparse
 import logging
 from utils.seed import set_seed

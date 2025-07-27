@@ -12,6 +12,12 @@ from schemas.rq_vae import RqVaeOutput, RqVaeComputedLosses
 
 
 class RQ_VAE(nn.Module, PyTorchModelHubMixin):
+    """
+    Residual Quantized Variational Autoencoder (RQ-VAE) for semantic ID generation.
+
+    Supports both Straight-Through Estimation (STE) and Gumbel Softmax quantization
+    methods for better gradient flow and joint training with language models.
+    """
     def __init__(
         self,
         input_dim: int,
@@ -20,6 +26,7 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
         codebook_size: int,
         n_quantization_layers: int = 3,
         commitment_weight: float = 0.25,
+        quantization_method: QuantizeForwardMode = QuantizeForwardMode.STE,
     ) -> None:
         super().__init__()
 

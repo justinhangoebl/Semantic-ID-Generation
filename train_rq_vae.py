@@ -1,3 +1,7 @@
+"""
+Training script for RQ-VAE with support for temperature annealing and multiple quantization methods.
+"""
+
 import torch
 from tqdm import tqdm
 import wandb
@@ -22,6 +26,22 @@ def compute_semid_metrics_on_subset(model, data, device, batch_size, max_items=N
 
 
 def train(model, data, optimizer, scheduler, num_epochs, device, config):
+    """
+    Train RQ-VAE model with support for temperature annealing.
+
+    Args:
+        model: RQ-VAE model instance
+        data: Training data tensor
+        optimizer: PyTorch optimizer
+        scheduler: Learning rate scheduler (currently unused but kept for compatibility)
+        num_epochs: Number of training epochs
+        device: Training device (CPU/GPU)
+        config: Configuration object
+
+    Returns:
+        list: Training statistics for each epoch
+    """
+    # Note: scheduler parameter is kept for compatibility but not currently used
     model.train()
 
     if device.type == 'cuda':

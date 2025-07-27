@@ -4,7 +4,18 @@ import torch.nn.functional as F
 from torch import Tensor
 from sklearn.cluster import KMeans
 
-from schemas.quantization import QuantizeOutput
+from schemas.quantization import QuantizeOutput, QuantizeForwardMode, QuantizeDistance
+
+
+class QuantizeLoss(nn.Module):
+    def __init__(self, commitment_weight: float = 1.0) -> None:
+        super().__init__()
+        self.commitment_weight = commitment_weight
+
+    def forward(self, query: Tensor, value: Tensor) -> Tensor:
+        emb_loss = ((query.detach() - value)**2).sum(axis=[-1])
+        query_loss = ((query - value.detach())**2).sum(axis=[-1])
+        return emb_loss + self.commitment_weight * query_loss
 
 
 class CommitmentLoss(nn.Module):
@@ -22,6 +33,22 @@ class CommitmentLoss(nn.Module):
 
 
 class Quantization(nn.Module):
+    """
+    Vector Quantization module supporting both Straight-Through Estimation (STE)
+    and Gumbel Softmax quantization methods.
+
+    Args:
+        latent_dim: Dimension of the latent vectors
+        codebook_size: Number of vectors in the codebook
+        commitment_weight: Weight for the commitment loss
+        do_kmeans_init: Whether to initialize codebook with k-means
+        sim_vq: Whether to use similarity-based VQ with projection layer
+        forward_mode: Quantization method to use (QuantizeForwardMode enum)
+        distance_mode: Distance metric to use (QuantizeDistance enum)
+
+    Note:
+        For Gumbel Softmax quantization, temperature should be passed to the forward() method.
+    """
     def __init__(
         self,
         latent_dim: int,
@@ -34,6 +61,8 @@ class Quantization(nn.Module):
         self.codebook_size = codebook_size
         self.do_kmeans_init = do_kmeans_init
         self.kmeans_initted = False
+        self.forward_mode = forward_mode
+        self.distance_mode = distance_mode
 
         self.embedding = nn.Embedding(codebook_size, latent_dim)
         self.loss_fn = CommitmentLoss(beta=commitment_weight)
