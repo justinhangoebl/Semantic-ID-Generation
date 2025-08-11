@@ -1,10 +1,10 @@
 # Data loader configuration
 data:
   dataset: "movielens"
-  batch_size: 128
+  batch_size: 64
   normalize_data: False
-  category: "1m"
-  embedding_dimension: "relation" # 'user' or 'item' or 'relation' or 'entity'
+  category: "100k"
+  embedding_dimension: "item" # 'user' or 'item' or 'relation' or 'entity'
 
 # Model configuration
 model:
@@ -12,31 +12,31 @@ model:
   hidden_dimensions: [768, 512, 256]
   latent_dimension: 256
   num_codebook_layers: 3
-  codebook_clusters: 256
-  commitment_weight: 0.1 # Not used with Gumbel Softmax, but kept for compatibility
+  codebook_clusters: 128
+  commitment_weight: 0.15
 
   # Quantization method: "ste" (Straight-Through Estimation) or "gumbel_softmax"
   quantization_method: "gumbel_softmax"
-
-  # Gumbel Softmax parameters
-  temperature: 2.0 # Higher initial temperature for softer assignments
-  min_temperature: 0.05 # Lower minimum for sharper final assignments
-  temperature_decay: 0.9995 # Slower decay for gradual annealing
 
 # Training configuration
 train:
   learning_rate: 1e-3
   weight_decay: 1e-4
-  num_epochs: 1024
+  num_epochs: 256
 
   # Temperature annealing (for Gumbel Softmax)
   temperature_annealing: True
   temperature_update_frequency: 1 # Update temperature every epoch
-  annealing_schedule: "power_law"
+  annealing_schedule: "cosine"
+
+  # Gumbel Softmax parameters
+  temperature: 1.0 # Higher initial temperature for softer assignments
+  min_temperature: 0.5 # Lower minimum for sharper final assignments
+  temperature_decay: 0.995 # Slower decay for gradual annealing
 
 # Additional configuration
 general:
   use_wandb: True
-  wandb_project: "semantic_id_ml_1m_relation_gumbel"
+  wandb_project: "semantic_id_ml_1m_item_gumbel"
   wandb_entity: "justin-hangoebl-master-thesis"
   save_model: True
