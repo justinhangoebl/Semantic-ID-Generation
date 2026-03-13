@@ -46,7 +46,7 @@ def load_movie_lens(category='1M', dimension="user", train=True, raw=True):
                            {row['occupation:token']}\
                            living in zip code {row['zip_code:token']}.", axis=1).tolist()		
     elif dimension == "item":
-        texts = data.apply(lambda row: f"The movie {row['movie_title:token_seq']} was realeased in {row['release_year:token']} \
+        texts = data.apply(lambda row: f"The movie {row['movie_title:token_seq']} was released in {row['release_year:token']} \
                            has mostly regarded these genres: {row['genre:token_seq']}.", axis=1).tolist()
     elif dimension == "relation":
         texts = data.apply(lambda row: f"{row['relation_nl:token']}", axis=1).tolist()

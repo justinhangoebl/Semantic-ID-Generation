@@ -58,11 +58,11 @@ def generate_all_semids(model, data, device, batch_size=64, temperature=1.0):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate semantic IDs for ML-100k items")
-    parser.add_argument('--config', type=str, default='config/config_ml100k_item.yaml',
+    parser.add_argument('--config', type=str, default='config/config_ml1m_item.yaml',
                        help='Path to the configuration file')
     parser.add_argument('--model_path', type=str, required=True,
                        help='Path to the trained model file')
-    parser.add_argument('--output_path', type=str, default='outputs/ml100k_semids.pt',
+    parser.add_argument('--output_path', type=str, default='outputs/ml1m_items_semids.pt',
                        help='Path to save the semantic IDs')
     parser.add_argument('--temperature', type=float, default=0.5,
                        help='Temperature for Gumbel Softmax (lower = sharper)')

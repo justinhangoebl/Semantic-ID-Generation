@@ -14,25 +14,24 @@ model:
   num_codebook_layers: 3
   codebook_clusters: 256
   commitment_weight: 0.25
-
   # Quantization method: "ste" (Straight-Through Estimation) or "gumbel_softmax"
   quantization_method: "gumbel_softmax"
-
-  # Gumbel Softmax parameters
-  temperature: 2.0 # Higher initial temperature for softer assignments
-  min_temperature: 0.7 # Lower minimum for sharper final assignments
-  temperature_decay: 0.995 # Slower decay for gradual annealing
 
 # Training configuration
 train:
   learning_rate: 1e-3
   weight_decay: 1e-4
-  num_epochs: 1024
+  num_epochs: 512
 
   # Temperature annealing (for Gumbel Softmax)
   temperature_annealing: True
   temperature_update_frequency: 1 # Update temperature every epoch
   annealing_schedule: "cosine"
+
+  # Gumbel Softmax parameters
+  temperature: 2.0 # Higher initial temperature for softer assignments
+  min_temperature: 0.7 # Lower minimum for sharper final assignments
+  temperature_decay: 0.995 # Slower decay for gradual annealing
 
 # Additional configuration
 general:
