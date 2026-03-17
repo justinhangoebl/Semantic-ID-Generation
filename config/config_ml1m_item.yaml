@@ -1,7 +1,7 @@
 # Data loader configuration
 data:
   dataset: "movielens"
-  batch_size: 128
+  batch_size: 16
   normalize_data: False
   category: "1m"
   embedding_dimension: "item" # 'user' or 'item' or 'relation' or 'entity'
@@ -9,19 +9,19 @@ data:
 # Model configuration
 model:
   input_dimension: 768
-  hidden_dimensions: [768, 512, 256]
-  latent_dimension: 256
+  hidden_dimensions: [768, 384, 192]
+  latent_dimension: 128
   num_codebook_layers: 3
   codebook_clusters: 256
-  commitment_weight: 0.25
+  commitment_weight: 0.23496424595605292
   # Quantization method: "ste" (Straight-Through Estimation) or "gumbel_softmax"
   quantization_method: "gumbel_softmax"
 
 # Training configuration
 train:
-  learning_rate: 1e-3
-  weight_decay: 1e-4
-  num_epochs: 512
+  learning_rate: 0.0008625643688929166
+  weight_decay: 0
+  num_epochs: 1024
 
   # Temperature annealing (for Gumbel Softmax)
   temperature_annealing: True
@@ -31,7 +31,8 @@ train:
   # Gumbel Softmax parameters
   temperature: 2.0 # Higher initial temperature for softer assignments
   min_temperature: 0.7 # Lower minimum for sharper final assignments
-  temperature_decay: 0.995 # Slower decay for gradual annealing
+  temperature_decay: 0.98 # Slower decay for gradual annealing
+  validation_step: 20
 
 # Additional configuration
 general:

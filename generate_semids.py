@@ -4,7 +4,6 @@ from omegaconf import OmegaConf
 from data.loader import load_movie_lens
 from modules.rq_vae import RQ_VAE
 import os
-import pickle
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -111,6 +110,18 @@ def main():
     }, args.output_path)
     
     logger.info(f"Semantic IDs saved to: {args.output_path}")
+    
+      # ── Save .csv  (item_id, semid_0, semid_1, ..., semid_N) ────────────────
+    import pandas as pd
+
+    csv_path = os.path.splitext(args.output_path)[0] + ".csv"
+    df = pd.DataFrame({
+        "item_id": range(1, len(semids) + 1),
+        "semantic_id": [str(row.tolist()) for row in semids]
+    })
+    df.to_csv(csv_path, index=False)
+    logger.info(f"Semantic IDs CSV saved to: {csv_path}")
+
     
     # Print some statistics
     logger.info(f"Semantic ID statistics:")

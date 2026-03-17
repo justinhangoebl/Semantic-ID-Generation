@@ -12,6 +12,22 @@ from schemas.quantization import QuantizeForwardMode
 
 logger = logging.getLogger(__name__)
 
+def compute_global_unique_ids(model, data, device, batch_size, temperature=1.0):
+    """Compute global uniqueness of semantic IDs across the full dataset."""
+    model.eval()
+    semids_chunks = []
+    data_loader = DataLoader(data, batch_size=batch_size)
+
+    with torch.no_grad():
+        for batch in data_loader:
+            batch = batch.to(device).float()
+            output = model.get_semantic_ids(batch, temperature=temperature)
+            semids_chunks.append(output.sem_ids.cpu())
+
+    semids = torch.cat(semids_chunks, dim=0)
+    unique_count = torch.unique(semids, dim=0).shape[0]
+    return unique_count / semids.shape[0]
+
 def train(model, data, optimizer, scheduler, num_epochs, device, config):
     """
     Train RQ-VAE model with support for temperature annealing.
@@ -62,6 +78,11 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
     results = []
 
     train_loader = DataLoader(data, batch_size=config.data.batch_size)
+    validation_step = getattr(config.train, "validation_step", 1)
+    if validation_step <= 0:
+        validation_step = 1
+    global_unique_threshold = getattr(config.train, "global_unique_threshold", 1.0)
+    last_global_unique = None
 
     for epoch in epoch_progress:
         total_loss = 0
@@ -103,14 +124,31 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
             "Prob Unique IDs": p_unique / len(train_loader)
         }
 
+        computed_global_unique = False
+        if epoch % validation_step == 0 or epoch == num_epochs - 1:
+            global_unique = compute_global_unique_ids(
+                model=model,
+                data=data,
+                device=device,
+                batch_size=config.data.batch_size,
+                temperature=current_temperature
+            )
+            epoch_stats["Prob Unique IDs (Global)"] = global_unique
+            last_global_unique = global_unique
+            computed_global_unique = True
+            model.train()
+
         # Add temperature to stats if using Gumbel Softmax
         if is_gumbel_softmax and temperature_scheduler is not None:
             epoch_stats["Temperature"] = current_temperature
 
-        # Early stopping condition
-        if p_unique / len(train_loader) >= 1:
-            logger.info(f"Early stopping at epoch {epoch}: All IDs are unique")
-            break
+        # Early stopping condition based on global uniqueness (when computed)
+        if computed_global_unique and last_global_unique is not None:
+            if last_global_unique >= global_unique_threshold:
+                logger.info(
+                    f"Early stopping at epoch {epoch}: Global unique IDs >= {global_unique_threshold}"
+                )
+                break
 
         if config.general.use_wandb:
             wandb.log(epoch_stats, step=epoch)
