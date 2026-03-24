@@ -1,9 +1,9 @@
 # Data loader configuration
 data:
-  dataset: "movielens"
+  dataset: "lastfm"
   batch_size: 16
   normalize_data: False
-  category: "1m"
+  category: "1b"
   embedding_dimension: "item" # 'user' or 'item' or 'relation' or 'entity'
 
 # Model configuration

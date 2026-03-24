@@ -65,7 +65,7 @@ def main():
                        help='Path to save the semantic IDs')
     parser.add_argument('--temperature', type=float, default=0.5,
                        help='Temperature for Gumbel Softmax (lower = sharper)')
-    parser.add_argument('--batch_size', type=int, default=64,
+    parser.add_argument('--batch_size', type=int, default=16,
                        help='Batch size for processing')
     
     args = parser.parse_args()
@@ -128,6 +128,7 @@ def main():
     logger.info(f"  Shape: {semids.shape}")
     logger.info(f"  Min ID per layer: {semids.min(dim=0)[0]}")
     logger.info(f"  Max ID per layer: {semids.max(dim=0)[0]}")
+    logger.info(f"  Global unique IDs: {len(torch.unique(semids, dim=0))}")
     logger.info(f"  Unique IDs per layer: {[len(torch.unique(semids[:, i])) for i in range(semids.shape[1])]}")
 
 if __name__ == "__main__":

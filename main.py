@@ -110,43 +110,44 @@ def main():
     logger.info(f"Using device: {device}")
     logger.info(f"Model ID: {model_id}")
 
-    # Initialize wandb if enabled
-    if config.general.use_wandb:
-        wandb_init(config)
-
     # Load data and create model
     data = load_data(config)
-    model = create_model(config, data.shape[1])
-    model.to(device)
+    for i in range(20):
 
-    # Setup optimizer and scheduler
-    optimizer = optim.AdamW(model.parameters(),
-                           lr=config.train.learning_rate,
-                           weight_decay=config.train.weight_decay)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+        # Initialize wandb if enabled
+        if config.general.use_wandb:
+            wandb_init(config)
+        model = create_model(config, data.shape[1])
+        model.to(device)
 
-    # Watch model with wandb if enabled
-    if config.general.use_wandb:
-        wandb.watch(model, log="all")
+        # Setup optimizer and scheduler
+        optimizer = optim.AdamW(model.parameters(),
+                            lr=config.train.learning_rate,
+                            weight_decay=config.train.weight_decay)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-    # Train model
-    logger.info("Starting training...")
-    train_results = train(
-        model=model,
-        data=data,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        num_epochs=config.train.num_epochs,
-        device=device,
-        config=config
-    )
+        # Watch model with wandb if enabled
+        if config.general.use_wandb:
+            wandb.watch(model, log="all")
 
-    # Save model
-    torch.save(model.state_dict(), f"models/{model_id}.pt")
-    logger.info(f"Training completed. Final results: {train_results[-1]}")
+        # Train model
+        logger.info("Starting training...")
+        train_results = train(
+            model=model,
+            data=data,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            num_epochs=config.train.num_epochs,
+            device=device,
+            config=config
+        )
 
-    if config.general.use_wandb:
-        wandb.finish()
+        # Save model
+        torch.save(model.state_dict(), f"models/{model_id}_{i}.pt")
+        logger.info(f"Training completed. Final results: {train_results[-1]}")
+
+        if config.general.use_wandb:
+            wandb.finish()
     
 if __name__ == "__main__":
     main()
