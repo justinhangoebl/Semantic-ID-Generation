@@ -9,6 +9,7 @@ import wandb
 import logging
 from modules.temperature_scheduler import create_temperature_scheduler
 from schemas.quantization import QuantizeForwardMode
+from utils.semantic_id_metrics import compute_semantic_id_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ def compute_global_unique_ids(model, data, device, batch_size, temperature=1.0):
     """Compute global uniqueness of semantic IDs across the full dataset."""
     model.eval()
     semids_chunks = []
-    data_loader = DataLoader(data, batch_size=batch_size)
+    data_loader = DataLoader(data, batch_size=batch_size, pin_memory=(device.type == "cuda"))
 
     with torch.no_grad():
         for batch in data_loader:
@@ -27,6 +28,25 @@ def compute_global_unique_ids(model, data, device, batch_size, temperature=1.0):
     semids = torch.cat(semids_chunks, dim=0)
     unique_count = torch.unique(semids, dim=0).shape[0]
     return unique_count / semids.shape[0]
+
+
+def compute_semid_metrics_on_subset(model, data, device, batch_size, temperature=1.0, max_items=None):
+    """Compute semantic ID metrics on a subset for fast logging."""
+    model.eval()
+    semids_chunks = []
+
+    if max_items is not None:
+        data = data[:max_items]
+
+    data_loader = DataLoader(data, batch_size=batch_size, pin_memory=(device.type == "cuda"))
+    with torch.no_grad():
+        for batch in data_loader:
+            batch = batch.to(device, non_blocking=True).float()
+            output = model.get_semantic_ids(batch, temperature=temperature)
+            semids_chunks.append(output.sem_ids.cpu())
+
+    semids = torch.cat(semids_chunks, dim=0)
+    return compute_semantic_id_metrics(semids, codebook_size=model.codebook_size)
 
 def train(model, data, optimizer, scheduler, num_epochs, device, config):
     """
@@ -77,11 +97,12 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
     epoch_progress = tqdm(range(num_epochs), total=num_epochs, desc="Training Loop")
     results = []
 
-    train_loader = DataLoader(data, batch_size=config.data.batch_size)
+    train_loader = DataLoader(data, batch_size=config.data.batch_size, pin_memory=(device.type == "cuda"))
     validation_step = getattr(config.train, "validation_step", 1)
     if validation_step <= 0:
         validation_step = 1
     global_unique_threshold = getattr(config.train, "global_unique_threshold", 1.0)
+    metric_eval_samples = getattr(config.train, "metric_eval_samples", None)
     last_global_unique = None
 
     for epoch in epoch_progress:
@@ -136,6 +157,33 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
             epoch_stats["Prob Unique IDs (Global)"] = global_unique
             last_global_unique = global_unique
             computed_global_unique = True
+            debug = getattr(config.general, "debug", False)
+
+            metrics = compute_semid_metrics_on_subset(
+                model=model,
+                data=data,
+                device=device,
+                batch_size=config.data.batch_size,
+                temperature=current_temperature,
+                max_items=metric_eval_samples,
+            )
+            epoch_stats["Global Unique Ratio"] = float(metrics["unique_ratio"])
+
+            per_layer_usage = [float(v) for v in metrics["per_layer_usage"]]
+            per_layer_entropy = [float(v) for v in metrics["per_layer_entropy"]]
+
+            for layer_idx, usage_value in enumerate(per_layer_usage):
+                epoch_stats[f"Layer Usage/{layer_idx}"] = usage_value
+            for layer_idx, entropy_value in enumerate(per_layer_entropy):
+                epoch_stats[f"Layer Entropy/{layer_idx}"] = entropy_value
+
+            if debug:
+                logger.info(
+                    "Semantic ID metrics: unique_ratio=%.4f, usage=%s, entropy=%s",
+                    epoch_stats["Global Unique Ratio"],
+                    per_layer_usage,
+                    per_layer_entropy,
+                )
             model.train()
 
         # Add temperature to stats if using Gumbel Softmax

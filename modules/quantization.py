@@ -141,34 +141,35 @@ class Quantization(nn.Module):
                 # Convert distances to logits (negative distances for higher probability)
                 logits = -dist / temperature
 
-                # Apply Gumbel Softmax
+                # Apply Gumbel Softmax — soft embedding for differentiable decoder input
                 soft_assignment = F.gumbel_softmax(logits, tau=temperature, hard=False)
-                emb = soft_assignment @ codebook
-                emb_out = emb
+                emb_out = soft_assignment @ codebook
 
-                # For loss, use the closest codebook entry (like STE) to encourage commitment
-                closest_emb = self.get_item_embeddings(ids)
-                loss = self.quantize_loss(query=x, value=closest_emb)
+                # Hard (argmin) embedding for residuals and commitment loss
+                hard_emb = self.get_item_embeddings(ids)
+                loss = self.quantize_loss(query=x, value=hard_emb)
 
             elif self.forward_mode == QuantizeForwardMode.STE:
                 # Straight-Through Estimation
-                emb = self.get_item_embeddings(ids)
-                emb_out = x + (emb - x).detach()
+                hard_emb = self.get_item_embeddings(ids)
+                emb_out = x + (hard_emb - x).detach()
 
                 # Use the quantized embedding for loss
-                loss = self.quantize_loss(query=x, value=emb)
+                loss = self.quantize_loss(query=x, value=hard_emb)
 
             else:
                 raise ValueError(f"Unsupported forward mode: {self.forward_mode}")
         else:
             # Evaluation mode: use hard assignment for both methods
-            emb_out = self.get_item_embeddings(ids)
+            hard_emb = self.get_item_embeddings(ids)
+            emb_out = hard_emb
 
             # Compute loss for compatibility
-            loss = self.quantize_loss(query=x, value=emb_out)
+            loss = self.quantize_loss(query=x, value=hard_emb)
 
         return QuantizeOutput(
             embeddings=emb_out,
+            hard_embeddings=hard_emb if self.training else emb_out,
             ids=ids,
             loss=loss,
         )

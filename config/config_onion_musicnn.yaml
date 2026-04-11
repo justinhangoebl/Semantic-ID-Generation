@@ -1,16 +1,15 @@
 # Data loader configuration
 data:
-  dataset: "lfm"
-  batch_size: 16
+  dataset: "onion"
+  batch_size: 64
   normalize_data: False
-  category: "1b"
-  embedding_dimension: "item" # 'user' or 'item' or 'relation' or 'entity'
+  embedding_dimension: "musicnn" # pre-computed 50-dim MusicNN audio embeddings
 
 # Model configuration
 model:
-  input_dimension: 768
-  hidden_dimensions: [1024, 512, 256]
-  latent_dimension: 128
+  input_dimension: 50
+  hidden_dimensions: [128, 64]
+  latent_dimension: 32
   num_codebook_layers: 3
   codebook_clusters: 256
   commitment_weight: 0.25
@@ -37,6 +36,6 @@ train:
 # Additional configuration
 general:
   use_wandb: True
-  wandb_project: "semantic_id_lfm1b_item_gumbel"
+  wandb_project: "semantic_id_onion_musicnn"
   wandb_entity: "justin-hangoebl-master-thesis"
   save_model: True

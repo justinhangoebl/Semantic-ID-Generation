@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 import math
 from train_rq_vae import train
 from omegaconf import OmegaConf
-from data.loader import load_movie_lens, load_amazon
+from data.loader import load_movie_lens, load_amazon_book, load_onion
 from modules.rq_vae import RQ_VAE
 import argparse
 import itertools
@@ -31,11 +31,16 @@ def load_data(config):
             train=True,
             raw=True,
         )
-    elif config.data.dataset == "amazon":
-        data = load_amazon(
-            category=config.data.category,
-            normalize_data=config.data.normalize_data,
+    elif config.data.dataset == "amazon_books":
+        data = load_amazon_book(
+            dimension='meta',
             train=True,
+            raw=True
+        )
+    elif config.data.dataset == "onion":
+        data = load_onion(
+            embedding_type=config.data.embedding_dimension,
+            normalize_data=config.data.normalize_data,
         )
     elif config.data.dataset == "lastfm":
         raise NotImplementedError("LastFM dataset loading is not implemented yet.")
@@ -117,7 +122,14 @@ def update_config_with_hyperparams(base_config, hyperparams):
 
 
 def evaluate_model_performance(train_results):
-    """Extract key metrics from training results."""
+    """Extract key metrics from training results.
+
+    In addition to loss / uniqueness metrics, this function scans backwards
+    through the result list to find the most-recent validation step that
+    contains per-layer codebook-usage statistics (``Layer Usage/<idx>``).
+    Those values are returned as ``codebook_usage_per_layer`` — a list of
+    floats in layer order, where 1.0 means every codebook entry was used.
+    """
     if not train_results:
         return {
             'final_loss': float('inf'),
@@ -127,10 +139,23 @@ def evaluate_model_performance(train_results):
             'final_global_prob_unique_ids': 0.0,
             'avg_loss': float('inf'),
             'convergence_epoch': 0,
+            'codebook_usage_per_layer': [],
         }
     final = train_results[-1]
     last_n = max(1, len(train_results) // 10)
     avg_loss = sum(r['Loss'] for r in train_results[-last_n:]) / last_n
+
+    # Find last validation epoch that recorded per-layer usage
+    codebook_usage_per_layer = []
+    for result in reversed(train_results):
+        layer_keys = sorted(
+            [k for k in result if k.startswith('Layer Usage/')],
+            key=lambda k: int(k.split('/')[1]),
+        )
+        if layer_keys:
+            codebook_usage_per_layer = [result[k] for k in layer_keys]
+            break
+
     return {
         'final_loss': final['Loss'],
         'final_reconstruction_loss': final['Reconstruction Loss'],
@@ -139,6 +164,7 @@ def evaluate_model_performance(train_results):
         'final_global_prob_unique_ids': final.get('Prob Unique IDs (Global)', 0.0),
         'avg_loss': avg_loss,
         'convergence_epoch': len(train_results),
+        'codebook_usage_per_layer': codebook_usage_per_layer,
     }
 
 
@@ -218,7 +244,7 @@ def train_single_config(base_config, hyperparams, data, device, trial_id,
         performance = evaluate_model_performance(train_results)
 
         if config.general.use_wandb:
-            wandb.log({
+            wandb_metrics = {
                 "hp_final_loss": performance['final_loss'],
                 "hp_final_reconstruction_loss": performance['final_reconstruction_loss'],
                 "hp_final_rqvae_loss": performance['final_rqvae_loss'],
@@ -226,7 +252,10 @@ def train_single_config(base_config, hyperparams, data, device, trial_id,
                 "hp_final_global_prob_unique_ids": performance['final_global_prob_unique_ids'],
                 "hp_avg_loss": performance['avg_loss'],
                 "hp_convergence_epoch": performance['convergence_epoch'],
-            })
+            }
+            for layer_idx, usage in enumerate(performance.get('codebook_usage_per_layer', [])):
+                wandb_metrics[f"hp_codebook_usage_layer_{layer_idx}"] = usage
+            wandb.log(wandb_metrics)
 
         return performance, train_results
 
@@ -261,6 +290,33 @@ def create_optuna_objective(base_config, data, device):
     callable objective for optuna.Study.optimize().
     """
 
+    # Pick hidden-dimension search space based on input size
+    input_dim = data.shape[1]
+    if input_dim >= 2048:
+        # Jukebox (4800-dim) – need large intermediate layers
+        hidden_dim_choices = [
+            '[4096, 2048, 1024]',
+            '[2048, 1024, 512]',
+            '[4096, 1024, 512]',
+            '[2048, 512, 256]',
+        ]
+    elif input_dim >= 512:
+        # Mid-size embeddings (e.g. 768-dim sentence transformers)
+        hidden_dim_choices = [
+            '[768, 512, 256]',
+            '[512, 256, 128]',
+            '[1024, 512, 256]',
+            '[768, 384, 192]',
+        ]
+    else:
+        # Small embeddings (e.g. MusicNN 50-dim)
+        hidden_dim_choices = [
+            '[128, 64]',
+            '[64, 32]',
+            '[256, 128, 64]',
+            '[128, 64, 32]',
+        ]
+
     def objective(trial: optuna.Trial) -> float:
         min_temperature = trial.suggest_float("min_temperature", 0.1, 0.7)
         temperature_low = min_temperature + 0.1
@@ -280,15 +336,10 @@ def create_optuna_objective(base_config, data, device):
                 'batch_size', [16, 64, 256, 512]
             ),
             'hidden_dimensions': trial.suggest_categorical(
-                'hidden_dimensions', [
-                    # JSON strings so Optuna can hash them; converted below
-                    '[768, 512, 256]',
-                    '[512, 256, 128]',
-                    '[1024, 512, 256]',
-                    '[768, 384, 192]',
-                ]
+                'hidden_dimensions',
+                # JSON strings so Optuna can hash them; converted below
+                hidden_dim_choices,
             ),
-            # Fixed – not worth searching for ML-1M scale
             'latent_dimension': trial.suggest_categorical(
                 'latent_dimension', [128, 256, 512]
             ),
@@ -307,7 +358,6 @@ def create_optuna_objective(base_config, data, device):
             'annealing_schedule': trial.suggest_categorical(
                 'annealing_schedule', ["cosine", "exponential", "inverse_log", "constant"]
             ),
-  
         }
 
         # Optuna stores categoricals as strings; convert back to list
@@ -320,7 +370,7 @@ def create_optuna_objective(base_config, data, device):
             trial_id=trial.number,
             optuna_trial=trial,
         )
-        
+
         global_unique = performance.get(
             'final_global_prob_unique_ids',
             performance['final_prob_unique_ids']
@@ -337,6 +387,10 @@ def create_optuna_objective(base_config, data, device):
         trial.set_user_attr("final_loss_raw", performance['final_loss'])
         trial.set_user_attr("rqvae_loss", performance['final_rqvae_loss'])
         trial.set_user_attr("recon_loss", performance['final_reconstruction_loss'])
+
+        # Log per-layer codebook usage so it's visible in Optuna's dashboard
+        for layer_idx, usage in enumerate(performance.get('codebook_usage_per_layer', [])):
+            trial.set_user_attr(f"codebook_usage_layer_{layer_idx}", usage)
 
         return performance['final_loss']   # ← pure loss, zero penalty math
     return objective
@@ -361,6 +415,7 @@ def hyperparameter_tuning_optuna(config_path, num_trials=50,
 
     base_config = OmegaConf.load(config_path)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(str(device) + "="*50)
 
     print("Loading data...")
     data = load_data(base_config)
@@ -570,13 +625,13 @@ def analyze_results(results_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for RQ-VAE")
-    parser.add_argument('--config', type=str, default='config/config_ml1m_item.yaml',
+    parser.add_argument('--config', type=str, default='config/config_onion_jukebox.yaml',
                         help='Path to the base configuration file')
     parser.add_argument('--search_type', type=str,
                         choices=['random', 'grid', 'optuna'],
                         default='optuna',
                         help='Type of hyperparameter search')
-    parser.add_argument('--num_trials', type=int, default=50,
+    parser.add_argument('--num_trials', type=int, default=20,
                         help='Number of trials to run')
     parser.add_argument('--timeout', type=int, default=None,
                         help='Wall-clock timeout in seconds (Optuna only)')

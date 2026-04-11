@@ -95,7 +95,7 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
         for layer in self.quantization_layers:
             layer._kmeans_init(x)
             emb = layer.get_item_embeddings(layer(x, temperature=temperature).ids)
-            x = x - emb
+            x = x - emb  # Always hard embeddings here since get_item_embeddings is direct lookup
         
     def get_semantic_id_single(self, x: Tensor, temperature: float = 1.0) -> Tensor:
         res = self.encode(x.unsqueeze(0))  # Add batch dim (1, ...)
@@ -104,7 +104,7 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
         for layer in self.quantization_layers:
             quantized = layer(res, temperature=temperature)
             id = quantized.ids.squeeze(0)  # Remove batch dim
-            res = res - quantized.embeddings
+            res = res - quantized.hard_embeddings
             sem_ids.append(id)
 
         return torch.stack(sem_ids, dim=0)  # shape: (num_layers, semantic_id_dim)
@@ -120,7 +120,7 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
             quantized = layer(res, temperature=temperature)
             quantize_loss += quantized.loss
             emb, id = quantized.embeddings, quantized.ids
-            res = res - emb  # Update residuals
+            res = res - quantized.hard_embeddings  # Residual uses hard (argmin) embedding
             sem_ids.append(id)
             embs.append(emb)
 

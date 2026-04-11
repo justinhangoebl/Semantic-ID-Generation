@@ -12,7 +12,7 @@ from torch.optim import lr_scheduler
 from utils.wandb import wandb_init
 from train_rq_vae import train
 from omegaconf import OmegaConf
-from data.loader import load_movie_lens, load_amazon
+from data.loader import load_movie_lens, load_amazon, load_onion
 from modules.rq_vae import RQ_VAE
 from utils.model_id_generation import generate_model_id
 from schemas.quantization import QuantizeForwardMode
@@ -49,6 +49,17 @@ def load_data(config):
             category=config.data.category,
             normalize_data=config.data.normalize_data,
             train=True
+        )
+    elif config.data.dataset == "amazon_books":
+        data = load_amazon(
+            category='books',
+            normalize_data=config.data.normalize_data,
+            train=True
+        )
+    elif config.data.dataset == "onion":
+        data = load_onion(
+            embedding_type=config.data.embedding_dimension,
+            normalize_data=config.data.normalize_data,
         )
     elif config.data.dataset == "lastfm":
         raise NotImplementedError("LastFM dataset loading is not implemented yet.")
@@ -112,7 +123,7 @@ def main():
 
     # Load data and create model
     data = load_data(config)
-    for i in range(20):
+    for i in range(1):
 
         # Initialize wandb if enabled
         if config.general.use_wandb:

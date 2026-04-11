@@ -1,10 +1,9 @@
 # Data loader configuration
 data:
-  dataset: "lfm"
+  dataset: "amazon_books"
   batch_size: 16
   normalize_data: False
-  category: "1b"
-  embedding_dimension: "item" # 'user' or 'item' or 'relation' or 'entity'
+  embedding_dimension: "meta" # 'user' or 'item' or 'relation' or 'entity'
 
 # Model configuration
 model:
@@ -19,24 +18,22 @@ model:
 
 # Training configuration
 train:
-  learning_rate: 0.001
-  weight_decay: 0.001
-  num_epochs: 1024
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  num_epochs: 256
 
   # Temperature annealing (for Gumbel Softmax)
   temperature_annealing: True
-  temperature_update_frequency: 1 # Update temperature every epoch
-  annealing_schedule: "exponential"
-
   # Gumbel Softmax parameters
-  temperature: 1.75 # Higher initial temperature for softer assignments
-  min_temperature: 0.5 # Lower minimum for sharper final assignments
-  temperature_decay: 0.99 # Slower decay for gradual annealing
-  validation_step: 10
+  temperature: 1.2
+  min_temperature: 0.3
+  temperature_decay: 0.995
+  temperature_update_frequency: 1
+  annealing_schedule: "exponential"
 
 # Additional configuration
 general:
   use_wandb: True
-  wandb_project: "semantic_id_lfm1b_item_gumbel"
+  wandb_project: "semantic_id_amazon_books"
   wandb_entity: "justin-hangoebl-master-thesis"
   save_model: True
