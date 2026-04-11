@@ -22,3 +22,7 @@ debug*
 visualizations/
 .idea
 scripts/
+__pycache__
+
+*/*.pickle
+*/*.pickle
