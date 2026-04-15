@@ -110,3 +110,32 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
             sem_ids=rearrange(sem_ids, "h b -> b h"),
             quantize_loss=quantize_loss
         )
+
+    def forward(self, x: Tensor, temperature: float = 1.0) -> "RqVaeComputedLosses":
+        quantized = self.get_semantic_ids(x, temperature=temperature)
+        embs = quantized.embeddings  # Shape: (h, d, b)
+        x_hat = self.decode(embs.sum(dim=0).T)  # (h, d, b) -> (d, b) -> (b, d)
+        x_hat = F.normalize(x_hat, p=2)
+
+        reconstruction_loss = F.mse_loss(x_hat, x, reduction='sum')
+        rqvae_loss = quantized.quantize_loss
+        loss = (reconstruction_loss + rqvae_loss).mean()
+
+        with torch.no_grad():
+            embs_norm = embs.norm(dim=1).T  # (h, b) -> (b, h)
+            p_unique_ids = (
+                ~torch.triu(
+                    (rearrange(quantized.sem_ids, "b d -> b 1 d") == rearrange(quantized.sem_ids, "b d -> 1 b d")).all(dim=-1),
+                    diagonal=1,
+                )
+            ).all(dim=1).float().mean()
+
+        from schemas.rq_vae import RqVaeComputedLosses
+        return RqVaeComputedLosses(
+            loss=loss,
+            reconstruction_loss=reconstruction_loss.mean(),
+            rqvae_loss=rqvae_loss.mean(),
+            embs_norm=embs_norm,
+            p_unique_ids=p_unique_ids,
+            quantized=quantized,
+        )

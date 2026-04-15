@@ -70,7 +70,7 @@ class Quantization(nn.Module):
     @torch.no_grad
     def _kmeans_init(self, x: Tensor):
         x = x.view(-1, self.embed_dim).cpu().numpy()
-        kmeans = KMeans(n_clusters=self.codebook_size, n_init=10, max_iter=300)
+        kmeans = KMeans(n_clusters=self.codebook_size, n_init=3, max_iter=300)
         kmeans.fit(x)
         
         self.embedding.weight.copy_(torch.from_numpy(kmeans.cluster_centers_).to(self.device))

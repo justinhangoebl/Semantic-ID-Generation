@@ -326,8 +326,8 @@ def create_optuna_objective(base_config, data, device):
         hidden_dim_choices = [
             '[128, 64]',
             '[64, 32]',
-            '[32, 16]'
-            '[50, 32, 16]'
+            '[32, 16]',
+            '[50, 32, 16]',
         ]
 
     def objective(trial: optuna.Trial) -> float:
@@ -362,7 +362,7 @@ def create_optuna_objective(base_config, data, device):
                 'weight_decay', [0, 1e-4, 1e-3]
             ),
             'batch_size': trial.suggest_categorical(
-                'batch_size', [16, 64, 256, 512]
+                'batch_size', [256, 512, 1024, 2048]
             ),
             'hidden_dimensions': trial.suggest_categorical(
                 'hidden_dimensions',

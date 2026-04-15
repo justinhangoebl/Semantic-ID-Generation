@@ -18,7 +18,8 @@ def compute_semid_metrics_on_subset(model, data, device, batch_size, temperature
     if max_items is not None:
         data = data[:max_items]
 
-    data_loader = DataLoader(data, batch_size=batch_size, pin_memory=(device.type == "cuda"))
+    pin_memory = device.type == "cuda" and data.device.type == "cpu"
+    data_loader = DataLoader(data, batch_size=batch_size, pin_memory=pin_memory)
     with torch.no_grad():
         for batch in data_loader:
             batch = batch.to(device, non_blocking=True).float()
@@ -57,7 +58,11 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
     epoch_progress = tqdm(range(num_epochs), total=num_epochs, desc="Training Loop")
     results = []
 
-    train_loader = DataLoader(data, batch_size=config.data.batch_size, pin_memory=(device.type == "cuda"))
+    # Pre-move entire dataset to GPU once — avoids repeated CPU→GPU transfers
+    # per batch (critical for small datasets where kernel-launch overhead dominates).
+    if device.type == "cuda":
+        data = data.to(device).float()
+    train_loader = DataLoader(data, batch_size=config.data.batch_size, shuffle=True)
     validation_step = getattr(config.train, "validation_step", 1)
     if validation_step <= 0:
         validation_step = 1
@@ -78,11 +83,11 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
                 temperature_scheduler.step()
 
         if epoch == 0:
-            kmeans_init_data = torch.Tensor(data[torch.arange(min(20000, len(data)))]).to(device, dtype=torch.float32)
+            kmeans_init_data = data[:min(20000, len(data))].to(device).float()
             model(kmeans_init_data, temperature=current_temperature)
 
         for batch in train_loader:
-            batch = batch.to(device).float()
+            batch = batch.to(device).float() if batch.device.type != device.type else batch
             optimizer.zero_grad()
             result = model(batch, temperature=current_temperature)
             result.loss.backward()
