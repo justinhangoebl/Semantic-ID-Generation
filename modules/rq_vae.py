@@ -12,12 +12,6 @@ from schemas.rq_vae import RqVaeOutput, RqVaeComputedLosses
 import torch.nn.functional as F
 
 class RQ_VAE(nn.Module, PyTorchModelHubMixin):
-    """
-    Residual Quantized Variational Autoencoder (RQ-VAE) for semantic ID generation.
-
-    Supports both Straight-Through Estimation (STE) and Gumbel Softmax quantization
-    methods for better gradient flow and joint training with language models.
-    """
     def __init__(
         self,
         input_dim: int,
@@ -83,36 +77,17 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
         return self.decoder(x)
 
     def set_quantization_method(self, method: QuantizeForwardMode) -> None:
-        """Change quantization method for all layers."""
         self.quantization_method = method
         for layer in self.quantization_layers:
             layer.set_quantization_method(method)
 
-
-
     @torch.no_grad()
     def kmeans_init_codebooks(self, data: Tensor, temperature: float = 1.0) -> None:
-        """
-        Initializes all quantization layers using k-means with full (or large) dataset.
-        Call this before training.
-        """
         x = self.encode(data.to(self.device).float())
         for layer in self.quantization_layers:
             layer._kmeans_init(x)
             emb = layer.get_item_embeddings(layer(x, temperature=temperature).ids)
             x = x - emb  # Always hard embeddings here since get_item_embeddings is direct lookup
-        
-    def get_semantic_id_single(self, x: Tensor, temperature: float = 1.0) -> Tensor:
-        res = self.encode(x.unsqueeze(0))  # Add batch dim (1, ...)
-
-        sem_ids = []
-        for layer in self.quantization_layers:
-            quantized = layer(res, temperature=temperature)
-            id = quantized.ids.squeeze(0)  # Remove batch dim
-            res = res - quantized.hard_embeddings
-            sem_ids.append(id)
-
-        return torch.stack(sem_ids, dim=0)  # shape: (num_layers, semantic_id_dim)
 
     def get_semantic_ids(self, x: Tensor, temperature: float = 1.0) -> RqVaeOutput:
         res = self.encode(x)
@@ -134,51 +109,4 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
             residuals=rearrange(residuals, "h b d -> h d b"),
             sem_ids=rearrange(sem_ids, "h b -> b h"),
             quantize_loss=quantize_loss
-        )
-
-    @torch.no_grad()
-    def revive_codebooks(self, quantized: RqVaeOutput) -> None:
-        """
-        Update EMA usage and revive dead codebook entries.
-        Call this after the optimizer step to avoid autograd version conflicts.
-        """
-        if not self.training:
-            return
-
-        residuals = quantized.residuals
-        sem_ids = quantized.sem_ids
-        if residuals.numel() == 0:
-            return
-
-        for layer_idx, layer in enumerate(self.quantization_layers):
-            layer_input = residuals[layer_idx].T
-            layer_ids = sem_ids[:, layer_idx]
-            layer._update_ema_and_revive(layer_input, layer_ids)
-        
-    def forward(self, x, temperature: float = 1.0) -> RqVaeComputedLosses:
-        quantized = self.get_semantic_ids(x, temperature=temperature)
-        embs = quantized.embeddings  # Shape: (h, d, b)
-        # Sum over quantization layers and transpose to (b, d)
-        x_hat = self.decode(embs.sum(dim=0).T)  # (h, d, b) -> (d, b) -> (b, d)
-        x_hat = torch.nn.functional.normalize(x_hat, p=2)
-
-        reconstuction_loss = F.mse_loss(x_hat, x, reduction='sum')  # Using sum as the loss to match the previous behavior
-        rqvae_loss = quantized.quantize_loss
-        loss = (reconstuction_loss + rqvae_loss).mean()
-
-        with torch.no_grad():
-            # Compute debug ID statistics
-            # embs shape: (h, d, b) -> compute norm along embedding dim and transpose to (b, h)
-            embs_norm = embs.norm(dim=1).T  # (h, b) -> (b, h)
-            p_unique_ids = (~torch.triu(
-                (rearrange(quantized.sem_ids, "b d -> b 1 d") == rearrange(quantized.sem_ids, "b d -> 1 b d")).all(axis=-1), diagonal=1)
-            ).all(axis=1).sum() / quantized.sem_ids.shape[0]
-
-        return RqVaeComputedLosses(
-            loss=loss,
-            reconstruction_loss=reconstuction_loss.mean(),
-            rqvae_loss=rqvae_loss.mean(),
-            embs_norm=embs_norm,
-            p_unique_ids=p_unique_ids,
-            quantized=quantized
         )

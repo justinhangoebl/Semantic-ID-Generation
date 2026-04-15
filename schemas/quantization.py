@@ -11,7 +11,7 @@ class QuantizeDistance(Enum):
     COSINE = 2
 
 class QuantizeOutput(NamedTuple):
-    embeddings: Tensor       # soft embedding (Gumbel) or STE embedding — used for decoder input
-    hard_embeddings: Tensor  # hard (argmin) embedding — used for RQ residuals and commitment loss
+    embeddings: Tensor       # soft embedding (Gumbel) or STE embedding - used for decoder input
+    hard_embeddings: Tensor  # hard (argmin) embedding - used for RQ residuals and commitment loss
     ids: Tensor
     loss: Tensor

@@ -1,10 +1,3 @@
-"""
-Temperature scheduling for Gumbel Softmax quantization.
-
-This module provides various temperature annealing strategies that can be used
-during training to gradually transition from soft to hard assignments.
-"""
-
 import torch
 import math
 from typing import Optional, Union
@@ -12,8 +5,6 @@ from abc import ABC, abstractmethod
 
 
 class TemperatureScheduler(ABC):
-    """Base class for temperature scheduling strategies."""
-    
     def __init__(
         self,
         initial_temperature: float = 2.0,
@@ -28,21 +19,18 @@ class TemperatureScheduler(ABC):
     
     @abstractmethod
     def step(self) -> float:
-        """Update temperature and return new value."""
         pass
-    
+
     def reset(self) -> None:
-        """Reset scheduler to initial state."""
         self.current_temperature = self.initial_temperature
         self.step_count = 0
-    
+
     def get_temperature(self) -> float:
-        """Get current temperature value."""
         return self.current_temperature
 
 
 class ExponentialScheduler(TemperatureScheduler):
-    """Exponential decay: τ(t) = max(τ_min, τ_0 * decay^t)"""
+    """Exponential decay: \tau(t) = max(\tau_min, \tau_0 * decay^t)"""
 
     def __init__(
         self,
@@ -89,12 +77,11 @@ class CosineScheduler(TemperatureScheduler):
         return self.current_temperature
     
     def set_total_steps(self, total_steps: int) -> None:
-        """Update total steps for the schedule."""
         self.total_steps = total_steps
 
 
 class InverseLogScheduler(TemperatureScheduler):
-    """Inverse logarithmic: τ(t) = τ_min + (τ_max - τ_min) / (1 + α * log(1 + t))"""
+    """Inverse logarithmic: \tau(t) = \tau_min + (\tau_max - \tau_min) / (1 + \alpha * log(1 + t))"""
 
     def __init__(
         self,
@@ -118,7 +105,7 @@ class InverseLogScheduler(TemperatureScheduler):
 
 
 class PowerLawScheduler(TemperatureScheduler):
-    """Power law decay: τ(t) = max(τ_min, τ_max * (t + 1)^(-β))"""
+    """Power law decay: \tau(t) = max(\tau_min, \tau_max * (t + 1)^(-β))"""
 
     def __init__(
         self,
@@ -154,8 +141,6 @@ def create_temperature_scheduler(
     min_temperature: float = 0.1,
     **kwargs
 ) -> TemperatureScheduler:
-    """Factory function to create temperature schedulers."""
-    
     schedulers = {
         "exponential": ExponentialScheduler,
         "cosine": CosineScheduler,

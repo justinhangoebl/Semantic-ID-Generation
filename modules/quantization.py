@@ -18,22 +18,6 @@ class QuantizeLoss(nn.Module):
         return emb_loss + self.commitment_weight * query_loss
 
 class Quantization(nn.Module):
-    """
-    Vector Quantization module supporting both Straight-Through Estimation (STE)
-    and Gumbel Softmax quantization methods.
-
-    Args:
-        latent_dim: Dimension of the latent vectors
-        codebook_size: Number of vectors in the codebook
-        commitment_weight: Weight for the commitment loss
-        do_kmeans_init: Whether to initialize codebook with k-means
-        sim_vq: Whether to use similarity-based VQ with projection layer
-        forward_mode: Quantization method to use (QuantizeForwardMode enum)
-        distance_mode: Distance metric to use (QuantizeDistance enum)
-
-    Note:
-        For Gumbel Softmax quantization, temperature should be passed to the forward() method.
-    """
     def __init__(
         self,
         latent_dim: int,
@@ -64,7 +48,7 @@ class Quantization(nn.Module):
             nn.Linear(latent_dim, latent_dim, bias=False) if sim_vq else nn.Identity(),
         )
         self.quantize_loss = QuantizeLoss(commitment_weight)
-        # EMA usage counter — each entry starts at revival_threshold so we
+        # EMA usage counter - each entry starts at revival_threshold so we
         # don't evict anything immediately after k-means init.
         self.register_buffer(
             '_ema_usage', torch.full((codebook_size,), float(revival_threshold))
@@ -72,7 +56,6 @@ class Quantization(nn.Module):
         self._init_weights()
 
     def _init_weights(self):
-        """Initialize embedding weights uniformly."""
         for m in self.modules():
             if isinstance(m, nn.Embedding):
                 nn.init.uniform_(m.weight)
@@ -81,10 +64,7 @@ class Quantization(nn.Module):
     def device(self) -> torch.device:
         return next(self.parameters()).device
 
-
-
     def set_quantization_method(self, method: QuantizeForwardMode) -> None:
-        """Change the quantization method."""
         self.forward_mode = method
     
     @torch.no_grad
@@ -96,54 +76,23 @@ class Quantization(nn.Module):
         self.embedding.weight.copy_(torch.from_numpy(kmeans.cluster_centers_).to(self.device))
         self.kmeans_initted = True
 
-    def _update_ema_and_revive(self, x: Tensor, ids: Tensor) -> None:
-        """
-        Update per-entry EMA usage counts and reset dead entries.
-
-        Dead entries (EMA count below revival_threshold) are replaced with a
-        random sample from the current batch plus tiny noise.  This prevents
-        codebook collapse when some entries stop receiving gradient signal.
-        """
-        usage = torch.zeros(self.codebook_size, device=ids.device, dtype=torch.float)
-        usage.scatter_add_(0, ids, torch.ones_like(ids, dtype=torch.float))
-
-        # EMA update
-        self._ema_usage.mul_(self.revival_ema_decay).add_(
-            usage, alpha=1.0 - self.revival_ema_decay
-        )
-
-        dead = (self._ema_usage < self.revival_threshold).nonzero(as_tuple=False).squeeze(1)
-        if dead.numel() == 0:
-            return
-
-        # Sample random batch entries to replace dead codebook vectors
-        rand_idx = torch.randint(0, x.shape[0], (dead.numel(),), device=x.device)
-        replacement = x[rand_idx].detach()
-        noise = torch.randn_like(replacement) * 1e-5
-        with torch.no_grad():
-            self.embedding.weight[dead] = replacement + noise
-            # Reset EMA counter so the revived entries get a fair chance
-            self._ema_usage[dead] = self.revival_threshold
-
     def get_item_embeddings(self, item_ids) -> Tensor:
         return self.out_proj(self.embedding(item_ids))
-    
+
     def get_codebook(self) -> Tensor:
         return self.out_proj(self.embedding.weight)
 
     def _compute_distances(self, x: Tensor) -> Tensor:
-        """Compute distances between input vectors and codebook entries."""
         codebook = self.get_codebook()
 
         if self.distance_mode == QuantizeDistance.L2:
-            # Compute squared L2 distances: ||x - c||^2 = ||x||^2 + ||c||^2 - 2<x,c>
+            # ||x - c||^2 = ||x||^2 + ||c||^2 - 2<x,c>
             dist = (
                 (x**2).sum(dim=1, keepdim=True) +
                 (codebook**2).sum(dim=1, keepdim=True).T -
                 2 * x @ codebook.T
             )
         elif self.distance_mode == QuantizeDistance.COSINE:
-            # Compute negative cosine similarity (so min distance = max similarity)
             x_norm = x / x.norm(dim=1, keepdim=True)
             codebook_norm = codebook / codebook.norm(dim=1, keepdim=True)
             dist = -(x_norm @ codebook_norm.T)
@@ -152,20 +101,11 @@ class Quantization(nn.Module):
 
         return dist
 
-
-
     def forward(self, x: Tensor, temperature: float = 1.0) -> QuantizeOutput:
-        """
-        Forward pass with unified quantization logic.
-
-        Args:
-            x: Input tensor to quantize
-            temperature: Temperature for Gumbel Softmax (ignored for STE)
-        """
         assert x.shape[-1] == self.embed_dim
 
         # Normalizing onto the unit sphere bounds L2 distances to [0, 2] and
-        # makes them monotone with cosine similarity — essential for
+        # makes them monotone with cosine similarity - essential for
         # high-dimensional inputs (e.g. Jukebox) where raw L2 is dominated by
         # magnitude variance and causes all vectors to collapse to one entry.
         if self.normalize_inputs:
@@ -174,49 +114,28 @@ class Quantization(nn.Module):
         if self.do_kmeans_init and not self.kmeans_initted:
             self._kmeans_init(x)
 
-        # Compute distances to codebook entries
         dist = self._compute_distances(x)
-
-        # Get discrete assignments (used by both methods)
         _, ids = dist.detach().min(dim=1)
-
-        # Revive dead codebook entries before the loss / embedding step so
-        # that replacement vectors can receive gradient on the next forward.
-        # NOTE: codebook revival uses in-place updates and must happen
-        # outside the forward pass to avoid autograd version conflicts.
 
         if self.training:
             if self.forward_mode == QuantizeForwardMode.GUMBEL_SOFTMAX:
-                # Gumbel Softmax quantization
                 codebook = self.get_codebook()
-
-                # Convert distances to logits (negative distances for higher probability)
                 logits = -dist / temperature
-
-                # Apply Gumbel Softmax — soft embedding for differentiable decoder input
                 soft_assignment = F.gumbel_softmax(logits, tau=temperature, hard=False)
                 emb_out = soft_assignment @ codebook
-
-                # Hard (argmin) embedding for residuals and commitment loss
                 hard_emb = self.get_item_embeddings(ids)
                 loss = self.quantize_loss(query=x, value=hard_emb)
 
             elif self.forward_mode == QuantizeForwardMode.STE:
-                # Straight-Through Estimation
                 hard_emb = self.get_item_embeddings(ids)
                 emb_out = x + (hard_emb - x).detach()
-
-                # Use the quantized embedding for loss
                 loss = self.quantize_loss(query=x, value=hard_emb)
 
             else:
                 raise ValueError(f"Unsupported forward mode: {self.forward_mode}")
         else:
-            # Evaluation mode: use hard assignment for both methods
             hard_emb = self.get_item_embeddings(ids)
             emb_out = hard_emb
-
-            # Compute loss for compatibility
             loss = self.quantize_loss(query=x, value=hard_emb)
 
         return QuantizeOutput(

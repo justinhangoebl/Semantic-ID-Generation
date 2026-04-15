@@ -1,7 +1,3 @@
-"""
-Training script for RQ-VAE with support for temperature annealing and multiple quantization methods.
-"""
-
 import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -33,33 +29,13 @@ def compute_semid_metrics_on_subset(model, data, device, batch_size, temperature
     return compute_semantic_id_metrics(semids, codebook_size=model.codebook_size)
 
 def train(model, data, optimizer, scheduler, num_epochs, device, config):
-    """
-    Train RQ-VAE model with support for temperature annealing.
-
-    Args:
-        model: RQ-VAE model instance
-        data: Training data tensor
-        optimizer: PyTorch optimizer
-        scheduler: Learning rate scheduler (currently unused but kept for compatibility)
-        num_epochs: Number of training epochs
-        device: Training device (CPU/GPU)
-        config: Configuration object
-
-    Returns:
-        list: Training statistics for each epoch
-    """
-    # Note: scheduler parameter is kept for compatibility but not currently used
     model.train()
 
-    # Get temperature annealing settings
     temperature_annealing = getattr(config.train, 'temperature_annealing', False)
     temperature_update_freq = getattr(config.train, 'temperature_update_frequency', 1)
     quantization_method_str = getattr(config.model, 'quantization_method', 'ste')
-
-    # Convert string to enum for comparison
     is_gumbel_softmax = quantization_method_str == "gumbel_softmax"
 
-    # Initialize temperature scheduler for Gumbel Softmax
     temperature_scheduler = None
     if temperature_annealing and is_gumbel_softmax:
         annealing_schedule = getattr(config.train, 'annealing_schedule', 'exponential')
@@ -74,7 +50,7 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
             decay_rate=decay_rate,
             total_steps=num_epochs // temperature_update_freq
         )
-        logger.info(f"Temperature annealing enabled: {annealing_schedule} schedule (update every {temperature_update_freq} epochs)")
+        logger.info(f"Temperature annealing: {annealing_schedule} (every {temperature_update_freq} epochs)")
 
     logger.info(f"Training with {quantization_method_str} quantization")
 
@@ -95,15 +71,12 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
         total_commit_loss = 0
         p_unique = 0
 
-        # Get current temperature
-        current_temperature = 1.0  # Default for STE
+        current_temperature = 1.0
         if temperature_scheduler is not None:
             current_temperature = temperature_scheduler.get_temperature()
-            # Update temperature according to schedule
             if epoch % temperature_update_freq == 0:
                 temperature_scheduler.step()
 
-        # Initialize codebooks on first epoch
         if epoch == 0:
             kmeans_init_data = torch.Tensor(data[torch.arange(min(20000, len(data)))]).to(device, dtype=torch.float32)
             model(kmeans_init_data, temperature=current_temperature)
@@ -114,14 +87,12 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
             result = model(batch, temperature=current_temperature)
             result.loss.backward()
             optimizer.step()
-            model.revive_codebooks(result.quantized)
 
             total_loss += result.loss.item()
             total_reconstruction_loss += result.reconstruction_loss.item()
             total_commit_loss += result.rqvae_loss.item()
             p_unique += result.p_unique_ids.item()
 
-        # Calculate epoch statistics
         epoch_stats = {
             "Epoch": epoch,
             "Loss": total_loss / len(train_loader),
@@ -165,11 +136,9 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
                 )
             model.train()
 
-        # Add temperature to stats if using Gumbel Softmax
         if is_gumbel_softmax and temperature_scheduler is not None:
             epoch_stats["Temperature"] = current_temperature
 
-        # Early stopping condition based on global uniqueness (when computed)
         if computed_global_unique and last_global_unique is not None:
             if last_global_unique >= global_unique_threshold:
                 logger.info(

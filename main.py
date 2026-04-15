@@ -1,10 +1,3 @@
-"""
-Main training script for RQ-VAE with support for both STE and Gumbel Softmax quantization.
-
-This script provides a command-line interface for training RQ-VAE models on various datasets
-with configurable quantization methods and hyperparameters.
-"""
-
 import torch
 import wandb
 import torch.optim as optim
@@ -24,19 +17,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def load_data(config):
-    """
-    Load dataset based on configuration.
-
-    Args:
-        config: OmegaConf configuration object
-
-    Returns:
-        torch.Tensor: Loaded dataset
-
-    Raises:
-        NotImplementedError: For unsupported datasets
-        ValueError: For unknown dataset names
-    """
     if config.data.dataset == "movielens":
         data = load_movie_lens(
             category=config.data.category,
@@ -70,20 +50,8 @@ def load_data(config):
     return data
 
 def create_model(config, input_dim):
-    """
-    Create RQ-VAE model with configuration parameters.
-
-    Args:
-        config: OmegaConf configuration object
-        input_dim: Input dimension of the data
-
-    Returns:
-        RQ_VAE: Configured model instance
-    """
-    # Get quantization parameters with defaults
     quantization_method_str = getattr(config.model, 'quantization_method', 'ste')
 
-    # Convert string to enum
     if quantization_method_str == "gumbel_softmax":
         quantization_method = QuantizeForwardMode.GUMBEL_SOFTMAX
     elif quantization_method_str == "ste":
@@ -107,13 +75,11 @@ def create_model(config, input_dim):
     return model
 
 def main():
-    """Main training function."""
     parser = argparse.ArgumentParser(description="Train RQ-VAE with configurable quantization methods")
     parser.add_argument('--config', type=str, default='config/config_onion_musicnn.yaml',
                        help='Path to the configuration file')
     args = parser.parse_args()
 
-    # Load configuration
     config = OmegaConf.load(args.config)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_id = generate_model_id(config)
@@ -121,27 +87,22 @@ def main():
     logger.info(f"Using device: {device}")
     logger.info(f"Model ID: {model_id}")
 
-    # Load data and create model
     data = load_data(config)
     for i in range(1):
 
-        # Initialize wandb if enabled
         if config.general.use_wandb:
             wandb_init(config)
         model = create_model(config, data.shape[1])
         model.to(device)
 
-        # Setup optimizer and scheduler
         optimizer = optim.AdamW(model.parameters(),
                             lr=config.train.learning_rate,
                             weight_decay=config.train.weight_decay)
         scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-        # Watch model with wandb if enabled
         if config.general.use_wandb:
-            wandb.watch(model, log="all")
+            wandb.watch(model, log="gradients", log_freq=100)
 
-        # Train model
         logger.info("Starting training...")
         train_results = train(
             model=model,
@@ -153,7 +114,6 @@ def main():
             config=config
         )
 
-        # Save model
         torch.save(model.state_dict(), f"models/{model_id}_{i}.pt")
         logger.info(f"Training completed. Final results: {train_results[-1]}")
 

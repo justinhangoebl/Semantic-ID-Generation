@@ -130,7 +130,7 @@ def evaluate_model_performance(train_results):
     In addition to loss / uniqueness metrics, this function scans backwards
     through the result list to find the most-recent validation step that
     contains per-layer codebook-usage statistics (``Layer Usage/<idx>``).
-    Those values are returned as ``codebook_usage_per_layer`` — a list of
+    Those values are returned as ``codebook_usage_per_layer`` - a list of
     floats in layer order, where 1.0 means every codebook entry was used.
     """
     if not train_results:
@@ -337,7 +337,7 @@ def create_optuna_objective(base_config, data, device):
 
         # Jukebox-specific parameters to combat codebook collapse
         if is_jukebox:
-            # Vary codebook granularity and depth independently —
+            # Vary codebook granularity and depth independently -
             # collapse is caused by all assignments going to one entry,
             # not by insufficient entries.
             codebook_clusters = trial.suggest_categorical(
@@ -401,7 +401,7 @@ def create_optuna_objective(base_config, data, device):
             performance['final_prob_unique_ids']
         )
 
-        # ── Constraint signal: <= 0 means feasible ──────────────────────
+        # Constraint signal: <= 0 means feasible 
         # Optuna will separate trials into feasible/infeasible and only
         # minimise final_loss among feasible ones. Infeasible trials are
         # still used for exploration but never become the best trial.

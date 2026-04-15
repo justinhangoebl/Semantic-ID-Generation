@@ -125,7 +125,6 @@ def main():
 
     logger.info(f"Semantic IDs saved to: {args.output_path}")
 
-    # ── Save .csv  (item_id, semid_0, semid_1, ..., semid_N) ────────────────
     import pandas as pd
 
     csv_path = os.path.splitext(args.output_path)[0] + ".csv"
