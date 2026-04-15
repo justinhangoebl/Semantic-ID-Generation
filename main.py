@@ -109,7 +109,7 @@ def create_model(config, input_dim):
 def main():
     """Main training function."""
     parser = argparse.ArgumentParser(description="Train RQ-VAE with configurable quantization methods")
-    parser.add_argument('--config', type=str, default='config/config_ml1m_item.yaml',
+    parser.add_argument('--config', type=str, default='config/config_onion_musicnn.yaml',
                        help='Path to the configuration file')
     args = parser.parse_args()
 

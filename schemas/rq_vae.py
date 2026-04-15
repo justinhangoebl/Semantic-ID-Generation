@@ -14,3 +14,4 @@ class RqVaeComputedLosses(NamedTuple):
     rqvae_loss: Tensor
     embs_norm: Tensor
     p_unique_ids: Tensor
+    quantized: RqVaeOutput

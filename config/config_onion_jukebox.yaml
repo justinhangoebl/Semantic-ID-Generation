@@ -3,11 +3,11 @@ data:
   dataset: "onion"
   batch_size: 256
   normalize_data: True
-  embedding_dimension: "jukebox" # pre-computed 4800-dim Jukebox audio embeddings
+  embedding_dimension: "jukebox_pca768" # pre-computed 4800-dim Jukebox audio embeddings
 
 # Model configuration
 model:
-  input_dimension: 4800
+  input_dimension: 768
   hidden_dimensions: [2048, 1024, 512]
   latent_dimension: 256
   num_codebook_layers: 3
@@ -31,7 +31,8 @@ train:
   temperature: 1.75 # Higher initial temperature for softer assignments
   min_temperature: 0.5 # Lower minimum for sharper final assignments
   temperature_decay: 0.99 # Slower decay for gradual annealing
-  validation_step: 25
+  validation_step: 50
+  metric_eval_samples: 50000
 
 # Additional configuration
 general:

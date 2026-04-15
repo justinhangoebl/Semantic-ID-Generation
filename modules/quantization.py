@@ -43,6 +43,9 @@ class Quantization(nn.Module):
         sim_vq: bool = False,
         forward_mode: QuantizeForwardMode = QuantizeForwardMode.STE,
         distance_mode: QuantizeDistance = QuantizeDistance.L2,
+        revival_threshold: float = 1.0,
+        revival_ema_decay: float = 0.97,
+        normalize_inputs: bool = False,
     ) -> None:
         super().__init__()
         self.embed_dim = latent_dim
@@ -52,12 +55,20 @@ class Quantization(nn.Module):
         self.kmeans_initted = False
         self.forward_mode = forward_mode
         self.distance_mode = distance_mode
+        self.revival_threshold = revival_threshold
+        self.revival_ema_decay = revival_ema_decay
+        self.normalize_inputs = normalize_inputs
 
         self.embedding = nn.Embedding(codebook_size, latent_dim)
         self.out_proj = nn.Sequential(
             nn.Linear(latent_dim, latent_dim, bias=False) if sim_vq else nn.Identity(),
         )
         self.quantize_loss = QuantizeLoss(commitment_weight)
+        # EMA usage counter — each entry starts at revival_threshold so we
+        # don't evict anything immediately after k-means init.
+        self.register_buffer(
+            '_ema_usage', torch.full((codebook_size,), float(revival_threshold))
+        )
         self._init_weights()
 
     def _init_weights(self):
@@ -84,6 +95,35 @@ class Quantization(nn.Module):
         
         self.embedding.weight.copy_(torch.from_numpy(kmeans.cluster_centers_).to(self.device))
         self.kmeans_initted = True
+
+    def _update_ema_and_revive(self, x: Tensor, ids: Tensor) -> None:
+        """
+        Update per-entry EMA usage counts and reset dead entries.
+
+        Dead entries (EMA count below revival_threshold) are replaced with a
+        random sample from the current batch plus tiny noise.  This prevents
+        codebook collapse when some entries stop receiving gradient signal.
+        """
+        usage = torch.zeros(self.codebook_size, device=ids.device, dtype=torch.float)
+        usage.scatter_add_(0, ids, torch.ones_like(ids, dtype=torch.float))
+
+        # EMA update
+        self._ema_usage.mul_(self.revival_ema_decay).add_(
+            usage, alpha=1.0 - self.revival_ema_decay
+        )
+
+        dead = (self._ema_usage < self.revival_threshold).nonzero(as_tuple=False).squeeze(1)
+        if dead.numel() == 0:
+            return
+
+        # Sample random batch entries to replace dead codebook vectors
+        rand_idx = torch.randint(0, x.shape[0], (dead.numel(),), device=x.device)
+        replacement = x[rand_idx].detach()
+        noise = torch.randn_like(replacement) * 1e-5
+        with torch.no_grad():
+            self.embedding.weight[dead] = replacement + noise
+            # Reset EMA counter so the revived entries get a fair chance
+            self._ema_usage[dead] = self.revival_threshold
 
     def get_item_embeddings(self, item_ids) -> Tensor:
         return self.out_proj(self.embedding(item_ids))
@@ -124,6 +164,13 @@ class Quantization(nn.Module):
         """
         assert x.shape[-1] == self.embed_dim
 
+        # Normalizing onto the unit sphere bounds L2 distances to [0, 2] and
+        # makes them monotone with cosine similarity — essential for
+        # high-dimensional inputs (e.g. Jukebox) where raw L2 is dominated by
+        # magnitude variance and causes all vectors to collapse to one entry.
+        if self.normalize_inputs:
+            x = F.normalize(x, p=2, dim=-1)
+
         if self.do_kmeans_init and not self.kmeans_initted:
             self._kmeans_init(x)
 
@@ -132,6 +179,11 @@ class Quantization(nn.Module):
 
         # Get discrete assignments (used by both methods)
         _, ids = dist.detach().min(dim=1)
+
+        # Revive dead codebook entries before the loss / embedding step so
+        # that replacement vectors can receive gradient on the next forward.
+        # NOTE: codebook revival uses in-place updates and must happen
+        # outside the forward pass to avoid autograd version conflicts.
 
         if self.training:
             if self.forward_mode == QuantizeForwardMode.GUMBEL_SOFTMAX:

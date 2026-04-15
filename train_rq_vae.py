@@ -13,22 +13,6 @@ from utils.semantic_id_metrics import compute_semantic_id_metrics
 
 logger = logging.getLogger(__name__)
 
-def compute_global_unique_ids(model, data, device, batch_size, temperature=1.0):
-    """Compute global uniqueness of semantic IDs across the full dataset."""
-    model.eval()
-    semids_chunks = []
-    data_loader = DataLoader(data, batch_size=batch_size, pin_memory=(device.type == "cuda"))
-
-    with torch.no_grad():
-        for batch in data_loader:
-            batch = batch.to(device).float()
-            output = model.get_semantic_ids(batch, temperature=temperature)
-            semids_chunks.append(output.sem_ids.cpu())
-
-    semids = torch.cat(semids_chunks, dim=0)
-    unique_count = torch.unique(semids, dim=0).shape[0]
-    return unique_count / semids.shape[0]
-
 
 def compute_semid_metrics_on_subset(model, data, device, batch_size, temperature=1.0, max_items=None):
     """Compute semantic ID metrics on a subset for fast logging."""
@@ -130,6 +114,7 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
             result = model(batch, temperature=current_temperature)
             result.loss.backward()
             optimizer.step()
+            model.revive_codebooks(result.quantized)
 
             total_loss += result.loss.item()
             total_reconstruction_loss += result.reconstruction_loss.item()
@@ -147,16 +132,6 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
 
         computed_global_unique = False
         if epoch % validation_step == 0 or epoch == num_epochs - 1:
-            global_unique = compute_global_unique_ids(
-                model=model,
-                data=data,
-                device=device,
-                batch_size=config.data.batch_size,
-                temperature=current_temperature
-            )
-            epoch_stats["Prob Unique IDs (Global)"] = global_unique
-            last_global_unique = global_unique
-            computed_global_unique = True
             debug = getattr(config.general, "debug", False)
 
             metrics = compute_semid_metrics_on_subset(
@@ -167,7 +142,11 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
                 temperature=current_temperature,
                 max_items=metric_eval_samples,
             )
-            epoch_stats["Global Unique Ratio"] = float(metrics["unique_ratio"])
+            global_unique = float(metrics["unique_ratio"])
+            epoch_stats["Prob Unique IDs (Global)"] = global_unique
+            epoch_stats["Global Unique Ratio"] = global_unique
+            last_global_unique = global_unique
+            computed_global_unique = True
 
             per_layer_usage = [float(v) for v in metrics["per_layer_usage"]]
             per_layer_entropy = [float(v) for v in metrics["per_layer_entropy"]]

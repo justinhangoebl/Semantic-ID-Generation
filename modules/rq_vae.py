@@ -29,6 +29,8 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
         n_quantization_layers: int = 3,
         commitment_weight: float = 0.25,
         quantization_method: QuantizeForwardMode = QuantizeForwardMode.STE,
+        distance_mode: QuantizeDistance = QuantizeDistance.L2,
+        normalize_quantizer_inputs: bool = False,
     ) -> None:
         super().__init__()
 
@@ -41,6 +43,8 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
         self.commitment_weight = commitment_weight
         self.quantization_method = quantization_method
         self.n_quantization_layers = n_quantization_layers
+        self.distance_mode = distance_mode
+        self.normalize_quantizer_inputs = normalize_quantizer_inputs
 
         self.quantization_layers = nn.ModuleList(modules=[
             Quantization(
@@ -50,7 +54,8 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
                 do_kmeans_init=codebook_kmeans_init,
                 sim_vq=codebook_sim_vq,
                 forward_mode=quantization_method,
-                distance_mode=QuantizeDistance.L2,
+                distance_mode=distance_mode,
+                normalize_inputs=normalize_quantizer_inputs,
             )
             for _ in range(n_quantization_layers)
         ])
@@ -130,6 +135,25 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
             sem_ids=rearrange(sem_ids, "h b -> b h"),
             quantize_loss=quantize_loss
         )
+
+    @torch.no_grad()
+    def revive_codebooks(self, quantized: RqVaeOutput) -> None:
+        """
+        Update EMA usage and revive dead codebook entries.
+        Call this after the optimizer step to avoid autograd version conflicts.
+        """
+        if not self.training:
+            return
+
+        residuals = quantized.residuals
+        sem_ids = quantized.sem_ids
+        if residuals.numel() == 0:
+            return
+
+        for layer_idx, layer in enumerate(self.quantization_layers):
+            layer_input = residuals[layer_idx].T
+            layer_ids = sem_ids[:, layer_idx]
+            layer._update_ema_and_revive(layer_input, layer_ids)
         
     def forward(self, x, temperature: float = 1.0) -> RqVaeComputedLosses:
         quantized = self.get_semantic_ids(x, temperature=temperature)
@@ -155,5 +179,6 @@ class RQ_VAE(nn.Module, PyTorchModelHubMixin):
             reconstruction_loss=reconstuction_loss.mean(),
             rqvae_loss=rqvae_loss.mean(),
             embs_norm=embs_norm,
-            p_unique_ids=p_unique_ids
+            p_unique_ids=p_unique_ids,
+            quantized=quantized
         )

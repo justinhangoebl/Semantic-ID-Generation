@@ -16,7 +16,7 @@ import random
 import numpy as np
 import optuna
 from optuna.samplers import TPESampler
-from schemas.quantization import QuantizeForwardMode
+from schemas.quantization import QuantizeForwardMode, QuantizeDistance
 
 
 # ---------------------------------------------------------------------------
@@ -106,6 +106,9 @@ def update_config_with_hyperparams(base_config, hyperparams):
     config.model.codebook_clusters = hyperparams['codebook_clusters']
     config.model.num_codebook_layers = hyperparams['num_codebook_layers']
     config.model.commitment_weight = hyperparams['commitment_weight']
+    config.model.codebook_clusters = hyperparams.get('codebook_clusters', config.model.codebook_clusters)
+    config.model.num_codebook_layers = hyperparams.get('num_codebook_layers', config.model.num_codebook_layers)
+    config.model.distance_mode = hyperparams.get('distance_mode', 'l2')
     config.model.quantization_method = "gumbel_softmax"  # Fixed for hyperparameter search
 
     # Temperature annealing (for Gumbel Softmax)
@@ -115,9 +118,9 @@ def update_config_with_hyperparams(base_config, hyperparams):
 
     # Gumbel Softmax parameters
     config.train.temperature = hyperparams.get("temperature", 2.0)
-    config.train.min_temperature = hyperparams.get("min_temperature", 0.7)
+    config.train.min_temperature = hyperparams.get("min_temperature", 0.1)
     config.train.temperature_decay = hyperparams.get("temperature_decay", 0.98)
-    config.train.validation_step = hyperparams.get("validation_step", 20)
+    config.train.validation_step = hyperparams.get("validation_step", 100)
     return config
 
 
@@ -203,6 +206,13 @@ def train_single_config(base_config, hyperparams, data, device, trial_id,
         else:
             raise ValueError(f"Unknown quantization method: {config.model.quantization_method}")
 
+        # For high-dim inputs (Jukebox ≥ 2048), normalize latent vectors onto
+        # the unit sphere before quantization.  This bounds L2 distances to
+        # [0, 2] and prevents magnitude variance from collapsing all
+        # assignments to one entry.  cosine distance is then redundant (L2 on
+        # the sphere is monotone with cosine similarity), so we always use L2.
+        normalize_quantizer_inputs = data.shape[1] >= 2048
+
         model = RQ_VAE(
             input_dim=data.shape[1],
             latent_dim=config.model.latent_dimension,
@@ -213,6 +223,8 @@ def train_single_config(base_config, hyperparams, data, device, trial_id,
             n_quantization_layers=config.model.num_codebook_layers,
             commitment_weight=config.model.commitment_weight,
             quantization_method=quantization_method,
+            distance_mode=QuantizeDistance.L2,
+            normalize_quantizer_inputs=normalize_quantizer_inputs,
         )
         model.to(device)
 
@@ -292,7 +304,8 @@ def create_optuna_objective(base_config, data, device):
 
     # Pick hidden-dimension search space based on input size
     input_dim = data.shape[1]
-    if input_dim >= 2048:
+    is_jukebox = input_dim >= 2048
+    if is_jukebox:
         # Jukebox (4800-dim) – need large intermediate layers
         hidden_dim_choices = [
             '[4096, 2048, 1024]',
@@ -313,20 +326,36 @@ def create_optuna_objective(base_config, data, device):
         hidden_dim_choices = [
             '[128, 64]',
             '[64, 32]',
-            '[256, 128, 64]',
-            '[128, 64, 32]',
+            '[32, 16]'
+            '[50, 32, 16]'
         ]
 
     def objective(trial: optuna.Trial) -> float:
-        min_temperature = trial.suggest_float("min_temperature", 0.1, 0.7)
+        min_temperature = trial.suggest_float("min_temperature", 0.1, 2)
         temperature_low = min_temperature + 0.1
         temperature = trial.suggest_float("temperature", temperature_low, 3.0)
+
+        # Jukebox-specific parameters to combat codebook collapse
+        if is_jukebox:
+            # Vary codebook granularity and depth independently —
+            # collapse is caused by all assignments going to one entry,
+            # not by insufficient entries.
+            codebook_clusters = trial.suggest_categorical(
+                'codebook_clusters', [128, 256]
+            )
+            num_codebook_layers = 3
+            # Higher commitment pushes encoder outputs closer to codebook entries
+            commitment_weight = trial.suggest_float('commitment_weight', 0.1, 1)
+        else:
+            codebook_clusters = 256
+            num_codebook_layers = 3
+            commitment_weight = trial.suggest_float('commitment_weight', 0.1, 0.75)
 
         hyperparams = {
             # Continuous on log scale – TPE explores this much more
             # efficiently than a fixed list
             'learning_rate': trial.suggest_float(
-                'learning_rate', 1e-5, 1e-3, log=True
+                'learning_rate', 1e-6, 1e-3, log=True
             ),
             # Categorical params
             'weight_decay': trial.suggest_categorical(
@@ -341,19 +370,15 @@ def create_optuna_objective(base_config, data, device):
                 hidden_dim_choices,
             ),
             'latent_dimension': trial.suggest_categorical(
-                'latent_dimension', [128, 256, 512]
+                'latent_dimension', [16, 32, 64, 128, 256]
             ),
-            'codebook_clusters': 256,
-            'num_codebook_layers': trial.suggest_int(
-                'num_codebook_layers', 2, 4
-            ),
-            'commitment_weight': trial.suggest_float(
-                'commitment_weight', 0.1, 0.35
-            ),
+            'codebook_clusters': codebook_clusters,
+            'num_codebook_layers': num_codebook_layers,
+            'commitment_weight': commitment_weight,
             'temperature': temperature,
             'min_temperature': min_temperature,
             'temperature_decay': trial.suggest_float(
-                'temperature_decay', 0.98, 0.999
+                'temperature_decay', 0.8, 0.9999999
             ),
             'annealing_schedule': trial.suggest_categorical(
                 'annealing_schedule', ["cosine", "exponential", "inverse_log", "constant"]
@@ -625,7 +650,7 @@ def analyze_results(results_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for RQ-VAE")
-    parser.add_argument('--config', type=str, default='config/config_onion_jukebox.yaml',
+    parser.add_argument('--config', type=str, default='config/config_onion_musicnn.yaml',
                         help='Path to the base configuration file')
     parser.add_argument('--search_type', type=str,
                         choices=['random', 'grid', 'optuna'],
