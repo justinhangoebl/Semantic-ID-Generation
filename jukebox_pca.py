@@ -23,11 +23,11 @@ def perform_pca_on_latent_space(latent_vectors, n_components=2, random_state=42)
     return pca_result
 
 
-def load_onion_jukebox(path):
+def load_lfm_jukebox(path):
     if not os.path.exists(path):
         raise FileNotFoundError(
-            f"Onion Jukebox embeddings not found at {path}. "
-            "Please ensure the dataset is placed in dataset/onion/."
+            f"lfm Jukebox embeddings not found at {path}. "
+            "Please ensure the dataset is placed in dataset/lfm/."
         )
     return pd.read_csv(path, sep="\t", index_col=0)
 
@@ -39,17 +39,17 @@ def save_pca_embeddings(index, pca_vectors, output_path):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="PCA for Onion Jukebox embeddings")
+    parser = argparse.ArgumentParser(description="PCA for lfm Jukebox embeddings")
     parser.add_argument(
         "--input",
         type=str,
-        default="dataset/onion/onion.jukebox",
-        help="Path to Onion Jukebox embeddings (.jukebox)",
+        default="dataset/lfm/lfm.jukebox",
+        help="Path to lfm Jukebox embeddings (.jukebox)",
     )
     parser.add_argument(
         "--output",
         type=str,
-        default="dataset/onion/onion.jukebox_pca768",
+        default="dataset/lfm/lfm.jukebox_pca768",
         help="Path to save PCA-reduced embeddings",
     )
     parser.add_argument(
@@ -69,7 +69,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    embeddings_df = load_onion_jukebox(args.input)
+    embeddings_df = load_lfm_jukebox(args.input)
     latent_vectors = embeddings_df.values.astype(np.float32)
     pca_result = perform_pca_on_latent_space(
         latent_vectors,

@@ -108,12 +108,12 @@ def load_last_fm(category='1B', dimension="item", train=True, raw=True):
     return embeddings
 
 
-def load_onion(embedding_type="jukebox", normalize_data=False):
-    """Load Onion music dataset pre-computed embeddings (Jukebox or MusicNN).
+def load_lfm(embedding_type="jukebox", normalize_data=False):
+    """Load lfm music dataset pre-computed embeddings (Jukebox or MusicNN).
 
     The .jukebox file contains 4800-dim embeddings; .musicnn has 50-dim embeddings.
     Both files use a string track-ID as the first column (``id``), followed by
-    float embedding dimensions.  Rows are ordered consistently with onion.item,
+    float embedding dimensions.  Rows are ordered consistently with lfm.item,
     so row index i corresponds to item_id i.
 
     Args:
@@ -123,11 +123,11 @@ def load_onion(embedding_type="jukebox", normalize_data=False):
     Returns:
         torch.Tensor of shape (num_items, embedding_dim).
     """
-    path = fr"dataset/onion/onion.{embedding_type}"
+    path = fr"dataset/lfm/lfm.{embedding_type}"
     if not os.path.exists(path):
         raise FileNotFoundError(
-            f"Onion {embedding_type} embeddings not found at {path}. "
-            "Please ensure the dataset is placed in dataset/onion/."
+            f"lfm {embedding_type} embeddings not found at {path}. "
+            "Please ensure the dataset is placed in dataset/lfm/."
         )
 
     data = pd.read_csv(path, sep='\t', index_col=0)

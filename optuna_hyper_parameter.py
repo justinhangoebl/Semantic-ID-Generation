@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 import math
 from train_rq_vae import train
 from omegaconf import OmegaConf
-from data.loader import load_movie_lens, load_amazon_book, load_onion
+from data.loader import load_movie_lens, load_amazon_book, load_lfm
 from modules.rq_vae import RQ_VAE
 import argparse
 import itertools
@@ -37,8 +37,8 @@ def load_data(config):
             train=True,
             raw=True
         )
-    elif config.data.dataset == "onion":
-        data = load_onion(
+    elif config.data.dataset == "lfm":
+        data = load_lfm(
             embedding_type=config.data.embedding_dimension,
             normalize_data=config.data.normalize_data,
         )
@@ -650,7 +650,7 @@ def analyze_results(results_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for RQ-VAE")
-    parser.add_argument('--config', type=str, default='config/config_onion_musicnn.yaml',
+    parser.add_argument('--config', type=str, default='config/config_lfm_musicnn.yaml',
                         help='Path to the base configuration file')
     parser.add_argument('--search_type', type=str,
                         choices=['random', 'grid', 'optuna'],

@@ -1,7 +1,7 @@
 import torch
 import argparse
 from omegaconf import OmegaConf
-from data.loader import load_movie_lens, load_onion
+from data.loader import load_movie_lens, load_lfm
 from modules.rq_vae import RQ_VAE
 import os
 import logging
@@ -21,8 +21,8 @@ def load_data_for_config(config):
             train=True,
             raw=True,
         )
-    elif dataset == "onion":
-        return load_onion(
+    elif dataset == "lfm":
+        return load_lfm(
             embedding_type=config.data.embedding_dimension,
             normalize_data=config.data.normalize_data,
         )

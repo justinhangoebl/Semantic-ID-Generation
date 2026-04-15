@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 from utils.wandb import wandb_init
 from train_rq_vae import train
 from omegaconf import OmegaConf
-from data.loader import load_movie_lens, load_amazon, load_onion
+from data.loader import load_movie_lens, load_amazon, load_lfm
 from modules.rq_vae import RQ_VAE
 from utils.model_id_generation import generate_model_id
 from schemas.quantization import QuantizeForwardMode
@@ -36,8 +36,8 @@ def load_data(config):
             normalize_data=config.data.normalize_data,
             train=True
         )
-    elif config.data.dataset == "onion":
-        data = load_onion(
+    elif config.data.dataset == "lfm":
+        data = load_lfm(
             embedding_type=config.data.embedding_dimension,
             normalize_data=config.data.normalize_data,
         )
@@ -76,7 +76,7 @@ def create_model(config, input_dim):
 
 def main():
     parser = argparse.ArgumentParser(description="Train RQ-VAE with configurable quantization methods")
-    parser.add_argument('--config', type=str, default='config/config_onion_musicnn.yaml',
+    parser.add_argument('--config', type=str, default='config/config_lfm_musicnn.yaml',
                        help='Path to the configuration file')
     args = parser.parse_args()
 

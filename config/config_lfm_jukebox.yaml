@@ -1,15 +1,15 @@
 # Data loader configuration
 data:
-  dataset: "onion"
-  batch_size: 64
-  normalize_data: False
-  embedding_dimension: "musicnn" # pre-computed 50-dim MusicNN audio embeddings
+  dataset: "lfm"
+  batch_size: 256
+  normalize_data: True
+  embedding_dimension: "jukebox_pca768" # pre-computed 4800-dim Jukebox audio embeddings
 
 # Model configuration
 model:
-  input_dimension: 50
-  hidden_dimensions: [128, 64, 32]
-  latent_dimension: 512
+  input_dimension: 768
+  hidden_dimensions: [2048, 1024, 512]
+  latent_dimension: 256
   num_codebook_layers: 3
   codebook_clusters: 256
   commitment_weight: 0.25
@@ -18,25 +18,25 @@ model:
 
 # Training configuration
 train:
-  learning_rate: 0.0002
-  weight_decay: 0.0001
-  num_epochs: 1024
+  learning_rate: 0.001
+  weight_decay: 0.001
+  num_epochs: 512
 
   # Temperature annealing (for Gumbel Softmax)
   temperature_annealing: True
   temperature_update_frequency: 1 # Update temperature every epoch
-  annealing_schedule: "inverse_log"
+  annealing_schedule: "exponential"
 
   # Gumbel Softmax parameters
   temperature: 1.75 # Higher initial temperature for softer assignments
-  min_temperature: 0.3 # Lower minimum for sharper final assignments
-  temperature_decay: 0.9 # Slower decay for gradual annealing
+  min_temperature: 0.5 # Lower minimum for sharper final assignments
+  temperature_decay: 0.99 # Slower decay for gradual annealing
   validation_step: 50
   metric_eval_samples: 50000
 
 # Additional configuration
 general:
   use_wandb: True
-  wandb_project: "semantic_id_onion_musicnn"
+  wandb_project: "semantic_id_lfm_jukebox"
   wandb_entity: "justin-hangoebl-master-thesis"
   save_model: True
