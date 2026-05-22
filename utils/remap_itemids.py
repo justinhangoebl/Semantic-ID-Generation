@@ -1,12 +1,3 @@
-"""
-Remaps item_id column in a semids CSV from original item IDs to sequential row-based IDs (1-indexed).
-
-Usage:
-    python remap_itemids.py <input_file> [output_file]
-
-If output_file is omitted, writes to <input_stem>_remapped.csv in the same directory.
-"""
-
 import sys
 import csv
 from pathlib import Path
