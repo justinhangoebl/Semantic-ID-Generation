@@ -1,42 +1,26 @@
-# Data loader configuration
 data:
   dataset: "lfm"
-  batch_size: 256
-  normalize_data: True
-  embedding_dimension: "jukebox_pca768" # pre-computed 4800-dim Jukebox audio embeddings
+  batch_size: 512
+  normalize_data: False
+  embedding_dimension: "jukebox_pca768"
 
-# Model configuration
 model:
-  input_dimension: 768
-  hidden_dimensions: [2048, 1024, 512]
-  latent_dimension: 256
+  hidden_dimensions: [512, 256]
+  latent_dimension: 64
   num_codebook_layers: 3
   codebook_clusters: 256
   commitment_weight: 0.25
-  # Quantization method: "ste" (Straight-Through Estimation) or "gumbel_softmax"
-  quantization_method: "gumbel_softmax"
 
-# Training configuration
 train:
   learning_rate: 0.001
-  weight_decay: 0.001
+  weight_decay: 0.0
   num_epochs: 512
-
-  # Temperature annealing (for Gumbel Softmax)
-  temperature_annealing: True
-  temperature_update_frequency: 1 # Update temperature every epoch
-  annealing_schedule: "exponential"
-
-  # Gumbel Softmax parameters
-  temperature: 1.75 # Higher initial temperature for softer assignments
-  min_temperature: 0.5 # Lower minimum for sharper final assignments
-  temperature_decay: 0.99 # Slower decay for gradual annealing
+  warmup_epochs: 50
   validation_step: 50
   metric_eval_samples: 50000
 
-# Additional configuration
 general:
+  seed: 2026
   use_wandb: True
   wandb_project: "semantic_id_lfm_jukebox"
   wandb_entity: "justin-hangoebl-master-thesis"
-  save_model: True

@@ -1,26 +1,26 @@
 data:
   dataset: "lfm"
-  batch_size: 512
+  batch_size: 128
   normalize_data: False
-  embedding_dimension: "musicnn"
+  embedding_dimension: "mfcc"
 
 model:
-  hidden_dimensions: [256, 128]
+  hidden_dimensions: [512, 256, 128]
   latent_dimension: 64
   num_codebook_layers: 3
   codebook_clusters: 256
-  commitment_weight: 0.25
+  commitment_weight: 0.1055382899865024
 
 train:
-  learning_rate: 0.001
-  weight_decay: 0.0
+  learning_rate: 0.0021605465159934677
+  weight_decay: 0.00
   num_epochs: 1024
-  warmup_epochs: 50
+  warmup_epochs: 72
   validation_step: 50
   metric_eval_samples: 50000
 
 general:
   seed: 2026
   use_wandb: True
-  wandb_project: "semantic_id_lfm_musicnn"
+  wandb_project: "semantic_id_lfm_mfcc"
   wandb_entity: "justin-hangoebl-master-thesis"

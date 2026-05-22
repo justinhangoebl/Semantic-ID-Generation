@@ -4,9 +4,11 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 import math
 from train_rq_vae import train
+from train_rvq import train as train_rvq
 from omegaconf import OmegaConf
 from data.loader import load_movie_lens, load_amazon_book, load_lfm
 from modules.rq_vae import RQ_VAE
+from modules.rvq import RVQ
 import argparse
 import itertools
 import json
@@ -16,7 +18,7 @@ import random
 import numpy as np
 import optuna
 from optuna.samplers import TPESampler
-from schemas.quantization import QuantizeForwardMode, QuantizeDistance
+from utils.seed import set_seed
 
 
 # ---------------------------------------------------------------------------
@@ -103,24 +105,11 @@ def update_config_with_hyperparams(base_config, hyperparams):
     config.data.batch_size = hyperparams['batch_size']
     config.model.hidden_dimensions = hyperparams['hidden_dimensions']
     config.model.latent_dimension = hyperparams['latent_dimension']
-    config.model.codebook_clusters = hyperparams['codebook_clusters']
-    config.model.num_codebook_layers = hyperparams['num_codebook_layers']
-    config.model.commitment_weight = hyperparams['commitment_weight']
     config.model.codebook_clusters = hyperparams.get('codebook_clusters', config.model.codebook_clusters)
     config.model.num_codebook_layers = hyperparams.get('num_codebook_layers', config.model.num_codebook_layers)
-    config.model.distance_mode = hyperparams.get('distance_mode', 'l2')
-    config.model.quantization_method = "gumbel_softmax"  # Fixed for hyperparameter search
-
-    # Temperature annealing (for Gumbel Softmax)
-    config.train.temperature_annealing = True
-    config.train.temperature_update_frequency = hyperparams.get("temperature_update_frequency", 1)
-    config.train.annealing_schedule = hyperparams.get("annealing_schedule", "cosine")
-
-    # Gumbel Softmax parameters
-    config.train.temperature = hyperparams.get("temperature", 2.0)
-    config.train.min_temperature = hyperparams.get("min_temperature", 0.1)
-    config.train.temperature_decay = hyperparams.get("temperature_decay", 0.98)
-    config.train.validation_step = hyperparams.get("validation_step", 100)
+    config.model.commitment_weight = hyperparams['commitment_weight']
+    config.train.warmup_epochs = hyperparams.get('warmup_epochs', 50)
+    config.train.validation_step = hyperparams.get('validation_step', 100)
     return config
 
 
@@ -146,7 +135,7 @@ def evaluate_model_performance(train_results):
         }
     final = train_results[-1]
     last_n = max(1, len(train_results) // 10)
-    avg_loss = sum(r['Loss'] for r in train_results[-last_n:]) / last_n
+    avg_loss = sum(r['L'] for r in train_results[-last_n:]) / last_n
 
     # Find last validation epoch that recorded per-layer usage
     codebook_usage_per_layer = []
@@ -160,10 +149,10 @@ def evaluate_model_performance(train_results):
             break
 
     return {
-        'final_loss': final['Loss'],
-        'final_reconstruction_loss': final['Reconstruction Loss'],
-        'final_rqvae_loss': final['RQ-VAE Loss'],
-        'final_prob_unique_ids': final['Prob Unique IDs'],
+        'final_loss': final['L'],
+        'final_reconstruction_loss': final['RL'],
+        'final_rqvae_loss': final['CL'],
+        'final_prob_unique_ids': final['P_u'],
         'final_global_prob_unique_ids': final.get('Prob Unique IDs (Global)', 0.0),
         'avg_loss': avg_loss,
         'convergence_epoch': len(train_results),
@@ -176,12 +165,14 @@ def evaluate_model_performance(train_results):
 # ---------------------------------------------------------------------------
 
 def train_single_config(base_config, hyperparams, data, device, trial_id,
-                        optuna_trial=None):
+                        optuna_trial=None, model_type: str = "rq_vae"):
     """
     Train one hyperparameter configuration.
 
     Parameters
     ----------
+    model_type : str
+        One of "rq_vae" or "rvq".
     optuna_trial : optuna.Trial or None
         When provided, intermediate losses are reported after each epoch so
         Optuna's pruner can terminate unpromising trials early.
@@ -198,52 +189,43 @@ def train_single_config(base_config, hyperparams, data, device, trial_id,
         )
 
     try:
-        # Convert string to enum
-        if config.model.quantization_method == "gumbel_softmax":
-            quantization_method = QuantizeForwardMode.GUMBEL_SOFTMAX
-        elif config.model.quantization_method == "ste":
-            quantization_method = QuantizeForwardMode.STE
+        if model_type == "rvq":
+            model = RVQ(
+                input_dim=data.shape[1],
+                codebook_size=config.model.codebook_clusters,
+                n_quantization_layers=config.model.num_codebook_layers,
+                commitment_weight=config.model.commitment_weight,
+            )
         else:
-            raise ValueError(f"Unknown quantization method: {config.model.quantization_method}")
-
-        # For high-dim inputs (Jukebox ≥ 2048), normalize latent vectors onto
-        # the unit sphere before quantization.  This bounds L2 distances to
-        # [0, 2] and prevents magnitude variance from collapsing all
-        # assignments to one entry.  cosine distance is then redundant (L2 on
-        # the sphere is monotone with cosine similarity), so we always use L2.
-        normalize_quantizer_inputs = data.shape[1] >= 2048
-
-        model = RQ_VAE(
-            input_dim=data.shape[1],
-            latent_dim=config.model.latent_dimension,
-            hidden_dims=config.model.hidden_dimensions,
-            codebook_size=config.model.codebook_clusters,
-            codebook_kmeans_init=True,
-            codebook_sim_vq=True,
-            n_quantization_layers=config.model.num_codebook_layers,
-            commitment_weight=config.model.commitment_weight,
-            quantization_method=quantization_method,
-            distance_mode=QuantizeDistance.L2,
-            normalize_quantizer_inputs=normalize_quantizer_inputs,
-        )
+            model = RQ_VAE(
+                input_dim=data.shape[1],
+                latent_dim=config.model.latent_dimension,
+                hidden_dims=config.model.hidden_dimensions,
+                codebook_size=config.model.codebook_clusters,
+                n_quantization_layers=config.model.num_codebook_layers,
+                commitment_weight=config.model.commitment_weight,
+            )
         model.to(device)
 
-        optimizer = optim.AdamW(
+        warmup_epochs = getattr(config.train, 'warmup_epochs', 50)
+        total_epochs = config.train.num_epochs
+        min_lr_ratio = 0.01
+
+        def lr_lambda(epoch):
+            if epoch < warmup_epochs:
+                return epoch / max(1, warmup_epochs)
+            progress = (epoch - warmup_epochs) / max(1, total_epochs - warmup_epochs)
+            return max(min_lr_ratio, 1.0 - (1.0 - min_lr_ratio) * progress)
+
+        optimizer = optim.Adagrad(
             model.parameters(),
             lr=config.train.learning_rate,
             weight_decay=config.train.weight_decay,
         )
-        scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
-        if config.general.use_wandb:
-            wandb.watch(model, log="all")
-
-        # -----------------------------------------------------------------
-        # Train – pass the Optuna trial so the loop can report + prune.
-        # Your train() function should accept an optional `optuna_trial`
-        # kwarg; if it doesn't yet, the kwarg is simply ignored.
-        # -----------------------------------------------------------------
-        train_results = train(
+        train_fn = train_rvq if model_type == "rvq" else train
+        train_results = train_fn(
             model=model,
             data=data,
             optimizer=optimizer,
@@ -296,7 +278,7 @@ def train_single_config(base_config, hyperparams, data, device, trial_id,
 # Optuna objective + study
 # ---------------------------------------------------------------------------
 
-def create_optuna_objective(base_config, data, device):
+def create_optuna_objective(base_config, data, device, model_type: str = "rq_vae"):
     """
     Factory that closes over base_config / data / device and returns a
     callable objective for optuna.Study.optimize().
@@ -320,6 +302,11 @@ def create_optuna_objective(base_config, data, device):
             '[512, 256, 128]',
             '[1024, 512, 256]',
             '[768, 384, 192]',
+            '[512, 256]',
+        ]
+    elif input_dim >= 400:
+        hidden_dim_choices = [
+            '[512, 256, 128]',
         ]
     else:
         # Small embeddings (e.g. MusicNN 50-dim)
@@ -331,69 +318,38 @@ def create_optuna_objective(base_config, data, device):
         ]
 
     def objective(trial: optuna.Trial) -> float:
-        min_temperature = trial.suggest_float("min_temperature", 0.1, 2)
-        temperature_low = min_temperature + 0.1
-        temperature = trial.suggest_float("temperature", temperature_low, 3.0)
-
-        # Jukebox-specific parameters to combat codebook collapse
-        if is_jukebox:
-            # Vary codebook granularity and depth independently -
-            # collapse is caused by all assignments going to one entry,
-            # not by insufficient entries.
-            codebook_clusters = trial.suggest_categorical(
-                'codebook_clusters', [128, 256]
-            )
-            num_codebook_layers = 3
-            # Higher commitment pushes encoder outputs closer to codebook entries
-            commitment_weight = trial.suggest_float('commitment_weight', 0.1, 1)
-        else:
-            codebook_clusters = 256
-            num_codebook_layers = 3
-            commitment_weight = trial.suggest_float('commitment_weight', 0.1, 0.75)
+        codebook_clusters = trial.suggest_categorical('codebook_clusters', [128, 256]) if is_jukebox else 256
+        commitment_weight = trial.suggest_float('commitment_weight', 0.1, 1.0 if is_jukebox else 0.5)
 
         hyperparams = {
-            # Continuous on log scale – TPE explores this much more
-            # efficiently than a fixed list
-            'learning_rate': trial.suggest_float(
-                'learning_rate', 1e-6, 1e-3, log=True
-            ),
-            # Categorical params
-            'weight_decay': trial.suggest_categorical(
-                'weight_decay', [0, 1e-4, 1e-3]
-            ),
-            'batch_size': trial.suggest_categorical(
-                'batch_size', [256, 512, 1024, 2048]
-            ),
-            'hidden_dimensions': trial.suggest_categorical(
-                'hidden_dimensions',
-                # JSON strings so Optuna can hash them; converted below
-                hidden_dim_choices,
-            ),
-            'latent_dimension': trial.suggest_categorical(
-                'latent_dimension', [16, 32, 64, 128, 256]
-            ),
+            'learning_rate': trial.suggest_float('learning_rate', 1e-4, 1e-2, log=True),
+            'weight_decay': trial.suggest_categorical('weight_decay', [0.0, 1e-4, 1e-3]),
+            'batch_size': trial.suggest_categorical('batch_size', [128, 256, 512]),
             'codebook_clusters': codebook_clusters,
-            'num_codebook_layers': num_codebook_layers,
+            'num_codebook_layers': 3,
             'commitment_weight': commitment_weight,
-            'temperature': temperature,
-            'min_temperature': min_temperature,
-            'temperature_decay': trial.suggest_float(
-                'temperature_decay', 0.8, 0.9999999
-            ),
-            'annealing_schedule': trial.suggest_categorical(
-                'annealing_schedule', ["cosine", "exponential", "inverse_log", "constant"]
-            ),
+            'warmup_epochs': trial.suggest_int('warmup_epochs', 10, 100),
         }
 
-        # Optuna stores categoricals as strings; convert back to list
-        hyperparams['hidden_dimensions'] = json.loads(
-            hyperparams['hidden_dimensions']
-        )
+        # RQ-VAE needs encoder architecture; RVQ operates directly in input space
+        if model_type == "rq_vae":
+            hyperparams['hidden_dimensions'] = trial.suggest_categorical(
+                'hidden_dimensions', hidden_dim_choices,
+            )
+            hyperparams['latent_dimension'] = trial.suggest_categorical(
+                'latent_dimension', [64, 128, 256, 512]
+            )
+            hyperparams['hidden_dimensions'] = json.loads(hyperparams['hidden_dimensions'])
+        else:
+            # Dummy values so update_config_with_hyperparams doesn't KeyError
+            hyperparams['hidden_dimensions'] = []
+            hyperparams['latent_dimension'] = 0
 
         performance, _ = train_single_config(
             base_config, hyperparams, data, device,
             trial_id=trial.number,
             optuna_trial=trial,
+            model_type=model_type,
         )
 
         global_unique = performance.get(
@@ -423,7 +379,7 @@ def create_optuna_objective(base_config, data, device):
 
 def hyperparameter_tuning_optuna(config_path, num_trials=50,
                                  output_dir="hyperopt_results",
-                                 timeout=None):
+                                 timeout=None, model_type: str = "rq_vae"):
     """
     Run Bayesian hyperparameter search with Optuna (TPE + MedianPruner).
 
@@ -439,6 +395,8 @@ def hyperparameter_tuning_optuna(config_path, num_trials=50,
     os.makedirs(output_dir, exist_ok=True)
 
     base_config = OmegaConf.load(config_path)
+    seed = getattr(base_config.general, "seed", None)
+    set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(str(device) + "="*50)
 
@@ -446,7 +404,7 @@ def hyperparameter_tuning_optuna(config_path, num_trials=50,
     data = load_data(base_config)
     print(f"Data shape: {data.shape}")
 
-    sampler = TPESampler(seed=42, multivariate=True,
+    sampler = TPESampler(seed=seed if seed is not None else 42, multivariate=True,
         constraints_func=constraints_func,)
     # multivariate=True models interactions between params (slightly slower
     # to fit but often more accurate for small trial budgets)
@@ -461,13 +419,13 @@ def hyperparameter_tuning_optuna(config_path, num_trials=50,
         direction="minimize",
         sampler=sampler,
         pruner=pruner,
-        study_name=f"rqvae_{base_config.data.dataset}",
+        study_name=f"{model_type}_{base_config.data.dataset}",
         # SQLite backend – study survives crashes and can be resumed
         storage=f"sqlite:///{output_dir}/optuna_study.db",
         load_if_exists=True,
     )
 
-    objective = create_optuna_objective(base_config, data, device)
+    objective = create_optuna_objective(base_config, data, device, model_type=model_type)
 
     study.optimize(
         objective,
@@ -540,6 +498,8 @@ def hyperparameter_tuning(config_path, search_type="random", num_trials=50,
                           output_dir="hyperopt_results"):
     """Random / grid search (legacy path)."""
     base_config = OmegaConf.load(config_path)
+    seed = getattr(base_config.general, "seed", None)
+    set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     print("Loading data...")
@@ -650,12 +610,16 @@ def analyze_results(results_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for RQ-VAE")
-    parser.add_argument('--config', type=str, default='config/config_lfm_musicnn.yaml',
+    parser.add_argument('--config', type=str, default='config/config_lfm_mfcc.yaml',
                         help='Path to the base configuration file')
     parser.add_argument('--search_type', type=str,
                         choices=['random', 'grid', 'optuna'],
                         default='optuna',
                         help='Type of hyperparameter search')
+    parser.add_argument('--model_type', type=str,
+                        choices=['rq_vae', 'rvq'],
+                        default='rq_vae',
+                        help='Model architecture to optimise (rq_vae or rvq)')
     parser.add_argument('--num_trials', type=int, default=20,
                         help='Number of trials to run')
     parser.add_argument('--timeout', type=int, default=None,
@@ -675,6 +639,7 @@ if __name__ == "__main__":
             num_trials=args.num_trials,
             output_dir=args.output_dir,
             timeout=args.timeout,
+            model_type=args.model_type,
         )
     else:
         hyperparameter_tuning(

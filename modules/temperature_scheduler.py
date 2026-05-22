@@ -149,6 +149,13 @@ def create_temperature_scheduler(
         "constant": ConstantScheduler,
     }
     
+    # remove decay rate if it is constant scheduler
+    if schedule_type == "constant":
+        kwargs.pop("decay_rate", None)
+        kwargs.pop("total_steps", None)
+        kwargs.pop("log_rate", None)
+        kwargs.pop("beta", None)
+    
     if schedule_type not in schedulers:
         raise ValueError(f"Unknown schedule type: {schedule_type}. Available: {list(schedulers.keys())}")
     

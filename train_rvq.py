@@ -47,13 +47,14 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
     global_unique_threshold = getattr(config.train, 'global_unique_threshold', 1.0)
     metric_eval_samples = getattr(config.train, 'metric_eval_samples', None)
 
-    epoch_progress = tqdm(range(num_epochs), desc='Training')
+    epoch_progress = tqdm(range(num_epochs), total=num_epochs, desc='Training RVQ')
     results = []
 
     for epoch in epoch_progress:
+        if epoch == 0:
+            model(data[:min(20000, len(data))].to(device).float())
+
         total_loss = torch.zeros(1, device=device)
-        total_reconstruction_loss = torch.zeros(1, device=device)
-        total_commit_loss = torch.zeros(1, device=device)
         p_unique = torch.zeros(1, device=device)
 
         model.train()
@@ -64,8 +65,6 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
             optimizer.step()
 
             total_loss += result.loss.detach()
-            total_reconstruction_loss += result.reconstruction_loss.detach()
-            total_commit_loss += result.rqvae_loss.detach()
             p_unique += result.p_unique_ids.detach()
 
         if scheduler is not None:
@@ -73,34 +72,29 @@ def train(model, data, optimizer, scheduler, num_epochs, device, config):
 
         epoch_stats = {
             'L': (total_loss / n_batches).item(),
-            'RL': (total_reconstruction_loss / n_batches).item(),
-            'CL': (total_commit_loss / n_batches).item(),
             'P_u': (p_unique / n_batches).item(),
         }
 
         computed_global_unique = False
         if epoch % validation_step == 0 or epoch == num_epochs - 1:
             metrics = compute_semid_metrics_on_subset(
-                model=model,
-                data=data,
-                device=device,
-                batch_size=config.data.batch_size,
-                max_items=metric_eval_samples,
+                model=model, data=data, device=device,
+                batch_size=batch_size, max_items=metric_eval_samples,
             )
             global_unique = float(metrics['unique_ratio'])
             epoch_stats['Global Unique Ratio'] = global_unique
             computed_global_unique = True
 
-            for layer_idx, v in enumerate(metrics['per_layer_usage']):
-                epoch_stats[f'Layer Usage/{layer_idx}'] = float(v)
-            for layer_idx, v in enumerate(metrics['per_layer_entropy']):
-                epoch_stats[f'Layer Entropy/{layer_idx}'] = float(v)
+            for i, v in enumerate(metrics['per_layer_usage']):
+                epoch_stats[f'Layer Usage/{i}'] = float(v)
+            for i, v in enumerate(metrics['per_layer_entropy']):
+                epoch_stats[f'Layer Entropy/{i}'] = float(v)
 
             model.train()
 
             if global_unique >= global_unique_threshold:
                 logger.info(f'Early stopping at epoch {epoch}: global unique IDs >= {global_unique_threshold}')
-                if config.general.use_wandb and computed_global_unique:
+                if config.general.use_wandb:
                     wandb.log(epoch_stats, step=epoch)
                 results.append(epoch_stats)
                 break

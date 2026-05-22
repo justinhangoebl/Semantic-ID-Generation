@@ -1,75 +1,78 @@
-import torch
 import os
-from sklearn.preprocessing import normalize
-import pandas as pd
-from sentence_transformers import SentenceTransformer
 import torch
+import pandas as pd
+from transformers import T5EncoderModel, AutoTokenizer
+from sklearn.preprocessing import normalize
+from tqdm import tqdm
 
-def load_movie_lens(category='1M', dimension="user", train=True, raw=True):
-    # Build the file path
-    sub_folder = "raw" if raw else "processed"
-    path = fr"dataset/ml-{category}/{sub_folder}/ml-{category}.{dimension}"
 
-    if not raw and os.path.exists(path):
-        return torch.load(path, weights_only=False)
+def _encode_texts_t5(texts, model_name='sentence-transformers/sentence-t5-base', batch_size=64, device=None):
+    """Encode texts with T5 encoder + mean pooling (GRID-style). No output normalisation."""
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset not found at {path}. Please ensure the dataset is downloaded and placed correctly.")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = T5EncoderModel.from_pretrained(model_name).to(device)
+    model.eval()
 
-    # Load the dataset
-    data = pd.read_csv(path, sep='\t', index_col=0)
-    print(data.columns)
-
-    # Load pretrained Sentence-T5 model
-    model = SentenceTransformer('sentence-transformers/sentence-t5-base')
-
-    # Build textual inputs based on the dimension
-    if dimension == "user":
-        texts = data.apply(lambda row: f"User is a {row['age:token']}-year-old\
-                           {"male" if row['gender:token']=="M" else "female"} \
-                           {row['occupation:token']}\
-                           living in zip code {row['zip_code:token']}.", axis=1).tolist()
-    elif dimension == "item":
-        # texts = data.apply(lambda row: f"The movie '{row['movie_title:token_seq']}' ({row['release_year:token']})\
-        #     belongs to the following genres: {row['genre:token_seq']}.", axis=1).tolist()
-        texts = data.apply(lambda row: f"{row['movie_title:token_seq']} ({row['release_year:token']}) with genres: {row['genre:token_seq'].lower()}", axis=1).tolist()
-
-    elif dimension == "relation":
-        texts = data.apply(lambda row: f"{row['relation_nl:token']}", axis=1).tolist()
-    elif dimension == "entity":
-        raise NotImplementedError(f"{dimension}-based embeddings not supported yet.")
-    else:
-        raise ValueError("Invalid dimension. Choose from 'user', 'item', 'relation', or 'entity'.")
-
-    # Generate embeddings
-    embeddings = model.encode(texts, convert_to_tensor=True, show_progress_bar=True)
-    torch.save(embeddings, fr"dataset/ml-{category}/processed/ml-{category}.{dimension}")
+    all_embeddings = []
+    for i in tqdm(range(0, len(texts), batch_size), desc='Encoding with T5'):
+        batch = texts[i:i + batch_size]
+        encoded = tokenizer(batch, padding=True, truncation=True, max_length=512, return_tensors='pt')
+        encoded = {k: v.to(device) for k, v in encoded.items()}
+        with torch.no_grad():
+            outputs = model(**encoded)
+        token_embs = outputs.last_hidden_state          # (B, L, D)
+        mask = encoded['attention_mask'].unsqueeze(-1).float()
+        embeddings = (token_embs * mask).sum(1) / mask.sum(1).clamp(min=1e-9)
+        all_embeddings.append(embeddings.cpu())
 
     torch.cuda.empty_cache()
+    return torch.cat(all_embeddings, dim=0)
+
+
+def load_movie_lens(category='1M', dimension='item', train=True, raw=True):
+    sub_folder = 'raw' if raw else 'processed'
+    path = fr'dataset/ml-{category}/{sub_folder}/ml-{category}.{dimension}'
+    cache_path = fr'dataset/ml-{category}/processed/ml-{category}.{dimension}.pt'
+
+    if os.path.exists(cache_path):
+        return torch.load(cache_path, weights_only=False)
+
+    if not os.path.exists(path):
+        raise FileNotFoundError(f'Dataset not found at {path}.')
+
+    data = pd.read_csv(path, sep='\t', index_col=0)
+
+    if dimension == 'user':
+        texts = data.apply(
+            lambda row: (
+                f"User is a {row['age:token']}-year-old "
+                f"{'male' if row['gender:token'] == 'M' else 'female'} "
+                f"{row['occupation:token']} living in zip code {row['zip_code:token']}."
+            ), axis=1
+        ).tolist()
+    elif dimension == 'item':
+        texts = data.apply(
+            lambda row: f"{row['movie_title:token_seq']} ({row['release_year:token']}) with genres: {row['genre:token_seq'].lower()}",
+            axis=1
+        ).tolist()
+    elif dimension == 'relation':
+        texts = data.apply(lambda row: f"{row['relation_nl:token']}", axis=1).tolist()
+    else:
+        raise ValueError(f"Invalid dimension '{dimension}'. Choose from 'user', 'item', 'relation'.")
+
+    embeddings = _encode_texts_t5(texts)
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    torch.save(embeddings, cache_path)
     return embeddings
 
 
-def load_lfm(embedding_type="jukebox", normalize_data=False):
-    """Load lfm music dataset pre-computed embeddings (Jukebox or MusicNN).
-
-    The .jukebox file contains 4800-dim embeddings; .musicnn has 50-dim embeddings.
-    Both files use a string track-ID as the first column (``id``), followed by
-    float embedding dimensions.  Rows are ordered consistently with lfm.item,
-    so row index i corresponds to item_id i.
-
-    Args:
-        embedding_type: ``"jukebox"`` or ``"musicnn"``.
-        normalize_data: If True, L2-normalise each embedding vector.
-
-    Returns:
-        torch.Tensor of shape (num_items, embedding_dim).
-    """
-    path = fr"dataset/lfm/lfm.{embedding_type}"
+def load_lfm(embedding_type='jukebox', normalize_data=False):
+    """Load pre-computed LFM embeddings (Jukebox or MusicNN)."""
+    path = fr'dataset/lfm/lfm.{embedding_type}'
     if not os.path.exists(path):
-        raise FileNotFoundError(
-            f"lfm {embedding_type} embeddings not found at {path}. "
-            "Please ensure the dataset is placed in dataset/lfm/."
-        )
+        raise FileNotFoundError(f'LFM {embedding_type} embeddings not found at {path}.')
 
     data = pd.read_csv(path, sep='\t', index_col=0)
     embeddings = torch.tensor(data.values, dtype=torch.float32)
@@ -80,28 +83,27 @@ def load_lfm(embedding_type="jukebox", normalize_data=False):
     return embeddings
 
 
-def load_amazon_book(dimension="meta", train=True, raw=True):
-    # Build the file path
-    raw_folder = "raw" if train else "processed"
-    path = fr"dataset/amazon_books/{raw_folder}/amazon_books.{dimension}"
+def load_amazon_book(dimension='meta', train=True, raw=True):
+    raw_folder = 'raw' if train else 'processed'
+    path = fr'dataset/amazon_books/{raw_folder}/amazon_books.{dimension}'
+    cache_path = fr'dataset/amazon_books/processed/amazon_books.{dimension}.pt'
 
-    if not raw and os.path.exists(path):
-        return torch.load(path, weights_only=False)
+    if os.path.exists(cache_path):
+        return torch.load(cache_path, weights_only=False)
 
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset not found at {path}. Please ensure the dataset is downloaded and placed correctly.")
+        raise FileNotFoundError(f'Dataset not found at {path}.')
 
-    # Load the dataset
     data = pd.read_csv(path, sep='\t')
-    print(data.columns)
+    texts = data.apply(
+        lambda row: (
+            f"{row['title']} talks about {row['description']}, "
+            f"was written in these categories: {row['category']}, "
+            f"and ranks {row['rank']}"
+        ), axis=1
+    ).tolist()
 
-    # Load pretrained Sentence-T5 model
-    model = SentenceTransformer('sentence-transformers/sentence-t5-base')
-
-    texts = data.apply(lambda row: f"{row['title']} talks about {row['description']}, was written in these categories: {row['category']}, and ranks {row['rank']}", axis=1).tolist()
-    # Generate embeddings
-    embeddings = model.encode(texts, convert_to_tensor=True, show_progress_bar=True)
-    path = fr"dataset/amazon_books/processed/amazon_books.{dimension}"
-
-    torch.cuda.empty_cache()
+    embeddings = _encode_texts_t5(texts)
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    torch.save(embeddings, cache_path)
     return embeddings
